@@ -1,0 +1,21 @@
+[build]
+  publish   = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Functions must be matched before the SPA catch-all.
+# Netlify evaluates [[redirects]] top to bottom — first match wins.
+
+# Pass function requests through untouched (200 = proxy, not redirect)
+[[redirects]]
+  from   = "/.netlify/functions/*"
+  to     = "/.netlify/functions/:splat"
+  status = 200
+
+# SPA catch-all — serve index.html for any other path
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

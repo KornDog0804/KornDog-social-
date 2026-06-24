@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>KornDog Social Engine</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-brand">
+      <div class="header-kitty">🐱</div>
+      <div>
+        <div class="header-title">KornDog Social</div>
+        <div class="header-sub">Vinyl Therapy Engine</div>
+      </div>
+    </div>
+    <div class="queue-badge" id="queueBadge" onclick="switchTab('queue')">0 queued</div>
+  </div>
+
+  <!-- NAV TABS -->
+  <div class="nav-tabs">
+    <div class="nav-tab active" data-tab="generate" onclick="switchTab('generate')">✦ Generate</div>
+    <div class="nav-tab" data-tab="swipe" onclick="switchTab('swipe')">⟵ Swipe</div>
+    <div class="nav-tab" data-tab="queue" onclick="switchTab('queue')">📬 Queue</div>
+  </div>
+
+  <!-- ══════════════ GENERATE VIEW ══════════════ -->
+  <div class="view active" id="view-generate">
+    <div class="generate-body" id="generateForm">
+
+      <div class="section-label">What are you posting about?</div>
+      <div class="post-type-grid">
+        <div class="post-type-btn selected" data-type="new_arrival" onclick="selectPostType(this)">
+          <div class="pt-icon">💿</div>
+          <span class="pt-label">New Arrival</span>
+          <div class="pt-desc">Fresh wax just dropped</div>
+        </div>
+        <div class="post-type-btn" data-type="sale" onclick="selectPostType(this)">
+          <div class="pt-icon">🔥</div>
+          <span class="pt-label">Sale / Deal</span>
+          <div class="pt-desc">Price drop or bundle</div>
+        </div>
+        <div class="post-type-btn" data-type="vinyl_therapy" onclick="selectPostType(this)">
+          <div class="pt-icon">🎵</div>
+          <span class="pt-label">Vinyl Therapy</span>
+          <div class="pt-desc">Story & culture post</div>
+        </div>
+        <div class="post-type-btn" data-type="spotlight" onclick="selectPostType(this)">
+          <div class="pt-icon">🎸</div>
+          <span class="pt-label">Artist Spotlight</span>
+          <div class="pt-desc">Hype a record/artist</div>
+        </div>
+        <div class="post-type-btn" data-type="whatsnew" onclick="selectPostType(this)">
+          <div class="pt-icon">📦</div>
+          <span class="pt-label">Haul Post</span>
+          <div class="pt-desc">Just picked these up</div>
+        </div>
+        <div class="post-type-btn" data-type="engagement" onclick="selectPostType(this)">
+          <div class="pt-icon">💬</div>
+          <span class="pt-label">Community</span>
+          <div class="pt-desc">Ask / poll the crowd</div>
+        </div>
+      </div>
+
+      <div class="section-label">Platform</div>
+      <div class="platform-row">
+        <div class="platform-btn selected" data-plat="facebook" onclick="selectPlatform(this)">
+          <span class="plat-icon">📘</span> Facebook
+        </div>
+        <div class="platform-btn" data-plat="instagram" onclick="selectPlatform(this)">
+          <span class="plat-icon">📸</span> Instagram
+        </div>
+        <div class="platform-btn" data-plat="both" onclick="selectPlatform(this)">
+          <span class="plat-icon">🔗</span> Both
+        </div>
+      </div>
+
+      <div class="section-label">Tone</div>
+      <div class="tone-row">
+        <div class="tone-btn selected" data-tone="raw" onclick="selectTone(this)">Raw & Real</div>
+        <div class="tone-btn" data-tone="hype" onclick="selectTone(this)">Hype Mode</div>
+        <div class="tone-btn" data-tone="nostalgic" onclick="selectTone(this)">Nostalgic</div>
+        <div class="tone-btn" data-tone="funny" onclick="selectTone(this)">Funny</div>
+        <div class="tone-btn" data-tone="educational" onclick="selectTone(this)">Deep Cut</div>
+      </div>
+
+      <div class="section-label">Details (optional but makes it better)</div>
+      <textarea class="input-field" id="detailsInput" rows="3"
+        placeholder="e.g. Just got a sealed copy of Pantera - Vulgar Display of Power on black vinyl. $45. Condition NM+"></textarea>
+
+      <div class="section-label">How many posts?</div>
+      <div class="platform-row" style="margin-bottom:24px">
+        <div class="platform-btn selected" data-count="1" onclick="selectCount(this)">1 post</div>
+        <div class="platform-btn" data-count="3" onclick="selectCount(this)">3 posts</div>
+        <div class="platform-btn" data-count="5" onclick="selectCount(this)">5 posts</div>
+      </div>
+
+      <button class="generate-btn" id="generateBtn" onclick="generatePosts()">
+        <span>⚡</span> GENERATE POSTS
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-state" id="loadingState">
+      <div class="spin-record"></div>
+      <div class="loading-text" id="loadingText">Writing your posts...</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ SWIPE VIEW ══════════════ -->
+  <div class="view" id="view-swipe">
+    <div class="swipe-body">
+      <div class="swipe-counter" id="swipeCounter">0 posts to review</div>
+
+      <div id="emptySwipe" class="empty-swipe">
+        <div class="empty-icon">💿</div>
+        <div class="empty-title">Nothing to swipe</div>
+        <div class="empty-sub">Generate some posts first, then come back here to approve or trash them.</div>
+        <button class="empty-cta" onclick="switchTab('generate')">Generate Posts</button>
+      </div>
+
+      <div class="card-stack" id="cardStack" style="display:none"></div>
+
+      <div class="swipe-actions" id="swipeActions" style="display:none">
+        <button class="action-btn btn-reject" onclick="voteCard('reject')" title="Trash it">✕</button>
+        <button class="action-btn btn-regen" onclick="regenCard()" title="Regenerate">↻</button>
+        <button class="action-btn btn-approve" onclick="voteCard('approve')" title="Queue it">✓</button>
+      </div>
+      <div class="swipe-hint" id="swipeHint" style="display:none">Swipe right to queue · Swipe left to trash</div>
+    </div>
+  </div>
+
+  <!-- ══════════════ QUEUE VIEW ══════════════ -->
+  <div class="view" id="view-queue">
+    <div class="queue-body">
+      <div id="queueEmpty" class="queue-empty">
+        <div class="queue-empty-icon">📭</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px">Queue is empty</div>
+        <div style="font-size:13px">Approve posts in the Swipe tab to add them here.</div>
+      </div>
+      <div class="queue-list" id="queueList"></div>
+    </div>
+  </div>
+
+  <!-- EDIT MODAL -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Edit Post</div>
+      <textarea class="modal-textarea" id="editTextarea" rows="8"></textarea>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button class="modal-save" onclick="saveEdit()">SAVE CHANGES</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

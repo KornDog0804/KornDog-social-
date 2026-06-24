@@ -1,0 +1,17 @@
+{
+  "name": "korndog-social",
+  "version": "1.0.0",
+  "description": "KornDog Records — Social Media Engine",
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "dev":    "netlify dev",
+    "deploy": "netlify deploy --dir=. --functions=netlify/functions",
+    "prod":   "netlify deploy --prod --dir=. --functions=netlify/functions"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}
