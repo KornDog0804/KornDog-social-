@@ -5,29 +5,109 @@
 // ═══════════════════════════════════════════════════════════
 
 // ── AI CALL ─────────────────────────────────────────────────
-// Single entry point. Sends { prompt, maxTokens } to the
-// Netlify function and returns plain text. Never touches keys.
-async function generate(prompt, maxTokens = 1000) {
+// Sends { prompt, maxTokens, imageBase64?, imageMimeType? }
+// to the Netlify function. Returns plain text.
+async function generate(payload) {
   const res = await fetch('/.netlify/functions/generate', {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ prompt, maxTokens }),
+    body:    JSON.stringify(payload),
   });
 
   let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error('Server returned an unreadable response.');
-  }
+  try { data = await res.json(); }
+  catch { throw new Error('Server returned an unreadable response.'); }
 
-  if (!res.ok) {
-    throw new Error(data?.error || `Request failed (${res.status})`);
-  }
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
 
   const text = (data?.text || '').trim();
   if (!text) throw new Error('Server returned empty text.');
   return text;
+}
+
+// ── IMAGE HANDLING ────────────────────────────────────────────
+// Holds the currently selected photo as { base64, mimeType } or null
+let currentPhoto = null;
+
+// Compress + encode a File to base64 JPEG under ~3.5MB
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const MAX_BYTES = 3.5 * 1024 * 1024; // 3.5 MB base64 budget
+    const MAX_DIM   = 1280;               // max width or height
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      // Scale down if needed
+      let { width, height } = img;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+
+      // Try quality steps until under budget
+      let quality = 0.85;
+      let dataUrl;
+      do {
+        dataUrl  = canvas.toDataURL('image/jpeg', quality);
+        quality -= 0.1;
+      } while (dataUrl.length > MAX_BYTES * 1.37 && quality > 0.2);
+      // base64 is ~1.37× the raw byte count
+
+      const base64 = dataUrl.split(',')[1];
+      resolve({ base64, mimeType: 'image/jpeg' });
+    };
+    img.onerror = () => reject(new Error('Could not load image'));
+    img.src = url;
+  });
+}
+
+function handlePhotoSelect(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  const preview    = document.getElementById('photoPreview');
+  const previewImg = document.getElementById('photoPreviewImg');
+  const clearBtn   = document.getElementById('photoClearBtn');
+  const label      = document.getElementById('photoLabel');
+
+  label.textContent = '⏳ Compressing...';
+
+  compressImage(file)
+    .then(({ base64, mimeType }) => {
+      currentPhoto = { base64, mimeType };
+      previewImg.src = `data:${mimeType};base64,${base64}`;
+      preview.style.display = 'block';
+      clearBtn.style.display = 'inline-flex';
+      label.textContent = '📷 Photo attached';
+      label.style.color = 'var(--lime)';
+    })
+    .catch(err => {
+      console.error('[photo]', err);
+      showToast('Could not load photo. Try another.');
+      label.textContent = '📷 Add a photo';
+      label.style.color = '';
+    });
+
+  // Reset input so same file can be re-selected
+  input.value = '';
+}
+
+function clearPhoto() {
+  currentPhoto = null;
+  document.getElementById('photoPreview').style.display  = 'none';
+  document.getElementById('photoClearBtn').style.display = 'none';
+  const label = document.getElementById('photoLabel');
+  label.textContent = '📷 Add a photo';
+  label.style.color = '';
 }
 
 // ── STATE ────────────────────────────────────────────────────
@@ -105,26 +185,26 @@ const TONE_LABELS = {
   educational: 'Deep cut — talk about the music, the pressing, the history, the culture',
 };
 
-// Determines if this post type should end with a claim CTA vs a question
-const SALE_TYPES = new Set(['sale']);
+const SALE_TYPES    = new Set(['sale']);
 const CULTURE_TYPES = new Set(['vinyl_therapy', 'spotlight', 'engagement', 'whatsnew', 'new_arrival']);
 
-function buildMainPrompt(details) {
+function buildMainPrompt(details, hasPhoto) {
   const isSale     = SALE_TYPES.has(state.postType);
   const hasDetails = details.length > 0;
 
-  // The Joey/KornDog persona is injected server-side by the Netlify function.
-  // This prompt contains only task-specific instructions.
   return `════ HARD RULE — NEVER BREAK ════
 Never invent price, condition, pressing, color variant, quantity, shipping, availability, stock count, release year, edition, or claim details.
 If any of those details are missing from what was provided, either omit them entirely or say "DM me for details." Do not fill gaps with plausible-sounding guesses.
 
 ════ TASK ════
 Post type: ${POST_TYPE_LABELS[state.postType]}
-Platform: ${PLATFORM_LABELS[state.platform]}
-Tone: ${TONE_LABELS[state.tone]}
-Count: ${state.count} post${state.count > 1 ? 's' : ''}
+Platform:  ${PLATFORM_LABELS[state.platform]}
+Tone:      ${TONE_LABELS[state.tone]}
+Count:     ${state.count} post${state.count > 1 ? 's' : ''}
 
+${hasPhoto
+  ? `A photo of the record or item has been provided. Use only what you can visually confirm from it — do not assume condition, pressing, or price from the image alone.`
+  : ''}
 ${hasDetails
   ? `Item details (use only what is listed here — do not add to it):\n${details}`
   : `No item details were provided. Do not invent a specific artist, album, price, condition, pressing, quantity, or availability. Write a general KornDog culture/community post instead, unless the selected post type requires item details. If item details are required, say "DM me for details."`}
@@ -137,7 +217,7 @@ ${isSale
 ${isSale ? `════ SALE POST RULES ════
 - Lead with emotion or story first. Then reveal the record and the deal.
 - Use soft selling language: "claim it", "going in the crate", "DM me", "comment SOLD", "link in bio."
-- Only include price, condition, format, and claim method IF they appear in the item details above.
+- Only include price, condition, format, and claim method IF they appear in the item details above or are clearly visible in the photo.
 - If those details are missing, say "DM me for details."` : ''}
 
 ════ FORMAT ════
@@ -149,8 +229,6 @@ ${state.count > 1 ? '- Separate each post with exactly "---POST---" on its own l
 function buildRegenPrompt(post) {
   const isSale = SALE_TYPES.has(post.type);
 
-  // The Joey/KornDog persona is injected server-side by the Netlify function.
-  // This prompt contains only task-specific instructions.
   return `════ HARD RULE — NEVER BREAK ════
 Never invent price, condition, pressing, color variant, quantity, shipping, availability, stock count, release year, edition, or claim details.
 If those details are not present in the original post, do not add them. Say "DM me for details" if needed.
@@ -162,7 +240,7 @@ ${post.text}
 Write ONE completely different version of the post above.
 
 - Keep the same record, artist, subject, or sale details that exist in the original.
-- Do NOT add any new factual details (price, condition, pressing) that are not already in the original.
+- Do NOT add any new factual details (price, condition, pressing) not already in the original.
 - Change the emotional angle completely.
 - Try a different opening line.
 - Post type is: ${POST_TYPE_LABELS[post.type] || post.type} — keep the same purpose.
@@ -193,7 +271,7 @@ async function generatePosts() {
   const messages = [
     'Writing your posts...',
     'Channeling the Vinyl Therapy vibe...',
-    'Digging through the crates...',
+    currentPhoto ? 'Reading your photo...' : 'Digging through the crates...',
     'Adding KornDog sauce...',
     'Almost ready to drop...',
   ];
@@ -203,7 +281,16 @@ async function generatePosts() {
   }, 1800);
 
   try {
-    const raw   = await generate(buildMainPrompt(details), 1000);
+    const payload = {
+      prompt:    buildMainPrompt(details, !!currentPhoto),
+      maxTokens: 1000,
+    };
+    if (currentPhoto) {
+      payload.imageBase64   = currentPhoto.base64;
+      payload.imageMimeType = currentPhoto.mimeType;
+    }
+
+    const raw   = await generate(payload);
     const posts = raw
       .split('---POST---')
       .map(p => p.trim())
@@ -218,6 +305,10 @@ async function generatePosts() {
         type:      state.postType,
         platform:  state.platform,
         tone:      state.tone,
+        // Store photo data URL for display in swipe/queue (thumbnail only)
+        photoDataUrl: currentPhoto
+          ? `data:${currentPhoto.mimeType};base64,${currentPhoto.base64}`
+          : null,
         timestamp: new Date().toISOString(),
       });
     });
@@ -239,7 +330,6 @@ async function generatePosts() {
 }
 
 // ── SWIPE ─────────────────────────────────────────────────────
-// Global drag listeners — attached once, never duplicated
 let _dragMoveHandler = null;
 let _dragEndHandler  = null;
 
@@ -287,31 +377,24 @@ function renderSwipe() {
 }
 
 function splitPostText(rawText) {
-  // Robustly split hashtags from body text.
-  // Handles: hashtags inline at end of paragraph, hashtags on their own line,
-  // mixed content where a line has both words and hashtags.
-  const lines = rawText.split('\n');
-  const bodyLines = [];
-  const hashLines = [];
+  const lines      = rawText.split('\n');
+  const bodyLines  = [];
+  const hashLines  = [];
   let reachedHashBlock = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    // A line is a "hashtag line" if every non-empty token starts with #
-    const tokens = trimmed.split(/\s+/).filter(Boolean);
+    const tokens  = trimmed.split(/\s+/).filter(Boolean);
     const allHashes = tokens.length > 0 && tokens.every(t => t.startsWith('#'));
 
     if (allHashes) {
       reachedHashBlock = true;
       hashLines.push(trimmed);
     } else if (reachedHashBlock) {
-      // Text after a hashtag block — rare, treat as body
       bodyLines.push(line);
     } else {
-      // Check if the line ends with inline hashtags (e.g. "Great record #vinyl #metal")
       const lastHashIdx = tokens.findIndex(t => t.startsWith('#'));
       if (lastHashIdx > 0 && tokens.slice(lastHashIdx).every(t => t.startsWith('#'))) {
-        // Split: body part + hash part
         bodyLines.push(tokens.slice(0, lastHashIdx).join(' '));
         hashLines.push(tokens.slice(lastHashIdx).join(' '));
         reachedHashBlock = true;
@@ -350,6 +433,7 @@ function buildCard(post, stackPos) {
       </div>
       ${stackPos === 0 ? '<button class="sleeve-edit" onclick="openEdit(\'pending\', 0)">Edit</button>' : ''}
     </div>
+    ${post.photoDataUrl ? `<img class="card-photo" src="${escHtml(post.photoDataUrl)}" alt="Record photo">` : ''}
     <div class="card-content">
       <div class="card-post-text">${escHtml(bodyText)}</div>
       ${hashText ? `<div class="card-hashtags">${escHtml(hashText)}</div>` : ''}
@@ -400,7 +484,6 @@ function attachDrag(card) {
   card.addEventListener('touchend',   onEnd);
   card.addEventListener('mousedown',  onStart);
 
-  // Store refs so renderSwipe can remove them before rebuilding
   _dragMoveHandler = onMove;
   _dragEndHandler  = onEnd;
   window.addEventListener('mousemove', _dragMoveHandler);
@@ -440,7 +523,7 @@ async function regenCard() {
   const post = state.pending[0];
   showToast('↻ Regenerating...');
   try {
-    const newText = await generate(buildRegenPrompt(post), 400);
+    const newText = await generate({ prompt: buildRegenPrompt(post), maxTokens: 400 });
     state.pending[0].text = newText;
     savePending();
     renderSwipe();
@@ -466,8 +549,8 @@ function renderQueue() {
   list.innerHTML = '';
 
   state.queue.forEach((post, i) => {
-    const platEmoji  = { facebook: '📘', instagram: '📸', both: '🔗' }[post.platform] || '📱';
-    const typeLabel  = POST_TYPE_LABELS[post.type] || post.type;
+    const platEmoji = { facebook: '📘', instagram: '📸', both: '🔗' }[post.platform] || '📱';
+    const typeLabel = POST_TYPE_LABELS[post.type] || post.type;
     const { bodyText, hashText } = splitPostText(post.text);
 
     const item = document.createElement('div');
@@ -477,6 +560,7 @@ function renderQueue() {
         <div class="queue-item-meta">${escHtml(typeLabel)}</div>
         <div class="queue-item-platform">${platEmoji} ${escHtml(post.platform)}</div>
       </div>
+      ${post.photoDataUrl ? `<img class="queue-photo" src="${escHtml(post.photoDataUrl)}" alt="Record photo">` : ''}
       <div class="queue-item-body">
         <div class="queue-item-text">${escHtml(bodyText)}</div>
         ${hashText ? `<div class="queue-item-tags">${escHtml(hashText)}</div>` : ''}
@@ -533,11 +617,9 @@ function saveEdit() {
 // ── UTILS ─────────────────────────────────────────────────────
 async function copyPost(text) {
   try {
-    // Modern clipboard API
     await navigator.clipboard.writeText(text);
     showToast('📋 Copied!');
   } catch {
-    // Fallback for mobile browsers that block clipboard without user gesture context
     try {
       const ta = document.createElement('textarea');
       ta.value = text;
@@ -577,9 +659,10 @@ function savePending() {
 function escHtml(str) {
   if (typeof str !== 'string') return '';
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/&/g,  '&amp;')
+    .replace(/</g,  '&lt;')
+    .replace(/>/g,  '&gt;')
+    .replace(/"/g,  '&quot;');
 }
 
 // ── INIT ──────────────────────────────────────────────────────
