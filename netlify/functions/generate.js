@@ -86,7 +86,31 @@ exports.handler = async function (event) {
 
   try {
     const fullPrompt = SYSTEM_PROMPT + '\n\n' + prompt.trim();
-    const text = await callProvider(provider, fullPrompt, tokens, hasImage ? { base64: imageBase64, mimeType: imageMimeType } : null);
+
+    // Retry up to 3 times with exponential backoff for transient errors (503, 429, timeout)
+    let text;
+    let lastError;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        text = await callProvider(provider, fullPrompt, tokens, hasImage ? { base64: imageBase64, mimeType: imageMimeType } : null);
+        break; // success — exit retry loop
+      } catch (err) {
+        lastError = err;
+        const isRetryable =
+          err.message.includes('503') ||
+          err.message.includes('429') ||
+          err.message.includes('timed out') ||
+          err.message.includes('overloaded') ||
+          err.message.includes('high demand');
+
+        if (!isRetryable || attempt === 3) throw err;
+
+        // Wait before retrying: 2s, then 4s
+        const wait = attempt * 2000;
+        console.log(`[generate] Attempt ${attempt} failed (${err.message.slice(0,60)}). Retrying in ${wait}ms...`);
+        await new Promise(r => setTimeout(r, wait));
+      }
+    }
 
     if (!text || !text.trim()) {
       console.error('[generate] Provider returned empty text. Provider:', provider);
