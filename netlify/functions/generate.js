@@ -197,10 +197,7 @@ async function callOpenAI(prompt, tokens, image) {
 async function callGemini(prompt, tokens, image) {
   const apiKey     = requireEnv('GEMINI_API_KEY');
   const cleanModel = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace('models/', '');
-
-  // gemini-3.x+ uses the newer /interactions endpoint
-  // gemini-2.x and below use the /generateContent endpoint
-  const isNewApi = /^gemini-[3-9]/.test(cleanModel);
+  const url        = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
 
   const parts = [];
   if (image) {
@@ -208,42 +205,22 @@ async function callGemini(prompt, tokens, image) {
   }
   parts.push({ text: prompt });
 
-  if (isNewApi) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
-    const res = await fetchWithTimeout(url, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: cleanModel,
-        input: parts.length === 1 ? prompt : parts,
-      }),
-    });
-    const data = await parseJSON(res, 'Gemini');
-    const text = (
-      data?.output_text ||
-      (data?.candidates?.[0]?.content?.parts || []).map(p => p?.text || '').join('')
-    ).trim();
-    if (!text) throw new Error('Gemini returned no text content');
-    return text;
+  const res = await fetchWithTimeout(url, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents:         [{ parts }],
+      generationConfig: { maxOutputTokens: tokens },
+    }),
+  });
 
-  } else {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
-    const res = await fetchWithTimeout(url, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents:         [{ parts }],
-        generationConfig: { maxOutputTokens: tokens },
-      }),
-    });
-    const data = await parseJSON(res, 'Gemini');
-    const text = (data?.candidates?.[0]?.content?.parts || [])
-      .map(p => p?.text || '')
-      .join('')
-      .trim();
-    if (!text) throw new Error('Gemini returned no text content');
-    return text;
-  }
+  const data = await parseJSON(res, 'Gemini');
+  const text = (data?.candidates?.[0]?.content?.parts || [])
+    .map(p => p?.text || '')
+    .join('')
+    .trim();
+  if (!text) throw new Error('Gemini returned no text content');
+  return text;
 }
 
 // ── Ollama ────────────────────────────────────────────────────
