@@ -20,146 +20,253 @@
         <div class="header-sub">Vinyl Therapy Engine</div>
       </div>
     </div>
-    <div class="queue-badge" id="queueBadge" onclick="switchTab('queue')">0 queued</div>
+    <div class="queue-badge" id="queueBadge" onclick="switchTool('social'); switchTab('queue')">0 queued</div>
   </div>
 
-  <!-- NAV TABS -->
-  <div class="nav-tabs">
-    <div class="nav-tab active" data-tab="generate" onclick="switchTab('generate')">✦ Generate</div>
-    <div class="nav-tab" data-tab="swipe" onclick="switchTab('swipe')">⟵ Swipe</div>
-    <div class="nav-tab" data-tab="queue" onclick="switchTab('queue')">📬 Queue</div>
-  </div>
-
-  <!-- ══════════════ GENERATE VIEW ══════════════ -->
-  <div class="view active" id="view-generate">
-    <div class="generate-body" id="generateForm">
-
-      <div class="section-label">What are you posting about?</div>
-      <div class="post-type-grid">
-        <div class="post-type-btn selected" data-type="new_arrival" onclick="selectPostType(this)">
-          <div class="pt-icon">💿</div>
-          <span class="pt-label">New Arrival</span>
-          <div class="pt-desc">Fresh wax just dropped</div>
-        </div>
-        <div class="post-type-btn" data-type="sale" onclick="selectPostType(this)">
-          <div class="pt-icon">🔥</div>
-          <span class="pt-label">Sale / Deal</span>
-          <div class="pt-desc">Price drop or bundle</div>
-        </div>
-        <div class="post-type-btn" data-type="vinyl_therapy" onclick="selectPostType(this)">
-          <div class="pt-icon">🎵</div>
-          <span class="pt-label">Vinyl Therapy</span>
-          <div class="pt-desc">Story & culture post</div>
-        </div>
-        <div class="post-type-btn" data-type="spotlight" onclick="selectPostType(this)">
-          <div class="pt-icon">🎸</div>
-          <span class="pt-label">Artist Spotlight</span>
-          <div class="pt-desc">Hype a record/artist</div>
-        </div>
-        <div class="post-type-btn" data-type="whatsnew" onclick="selectPostType(this)">
-          <div class="pt-icon">📦</div>
-          <span class="pt-label">Haul Post</span>
-          <div class="pt-desc">Just picked these up</div>
-        </div>
-        <div class="post-type-btn" data-type="engagement" onclick="selectPostType(this)">
-          <div class="pt-icon">💬</div>
-          <span class="pt-label">Community</span>
-          <div class="pt-desc">Ask / poll the crowd</div>
-        </div>
-      </div>
-
-      <div class="section-label">Platform</div>
-      <div class="platform-row">
-        <div class="platform-btn selected" data-plat="facebook" onclick="selectPlatform(this)">
-          <span class="plat-icon">📘</span> Facebook
-        </div>
-        <div class="platform-btn" data-plat="instagram" onclick="selectPlatform(this)">
-          <span class="plat-icon">📸</span> Instagram
-        </div>
-        <div class="platform-btn" data-plat="both" onclick="selectPlatform(this)">
-          <span class="plat-icon">🔗</span> Both
-        </div>
-      </div>
-
-      <div class="section-label">Tone</div>
-      <div class="tone-row">
-        <div class="tone-btn selected" data-tone="raw" onclick="selectTone(this)">Raw & Real</div>
-        <div class="tone-btn" data-tone="hype" onclick="selectTone(this)">Hype Mode</div>
-        <div class="tone-btn" data-tone="nostalgic" onclick="selectTone(this)">Nostalgic</div>
-        <div class="tone-btn" data-tone="funny" onclick="selectTone(this)">Funny</div>
-        <div class="tone-btn" data-tone="educational" onclick="selectTone(this)">Deep Cut</div>
-      </div>
-
-      <div class="section-label">Details (optional but makes it better)</div>
-      <textarea class="input-field" id="detailsInput" rows="3"
-        placeholder="e.g. Just got a sealed copy of Pantera - Vulgar Display of Power on black vinyl. $45. Condition NM+"></textarea>
-
-      <div class="section-label">How many posts?</div>
-      <div class="platform-row" style="margin-bottom:24px">
-        <div class="platform-btn selected" data-count="1" onclick="selectCount(this)">1 post</div>
-        <div class="platform-btn" data-count="3" onclick="selectCount(this)">3 posts</div>
-        <div class="platform-btn" data-count="5" onclick="selectCount(this)">5 posts</div>
-      </div>
-
-      <div class="section-label">Photo (optional — snap the record)</div>
-      <div class="photo-upload-row">
-        <label class="photo-upload-btn" for="photoInput">
-          <span id="photoLabel">📷 Add a photo</span>
-          <input type="file" id="photoInput" accept="image/*"
-            onchange="handlePhotoSelect(this)" style="display:none">
-        </label>
-        <button class="photo-clear-btn" id="photoClearBtn" onclick="clearPhoto()" style="display:none">✕ Remove</button>
-      </div>
-      <div id="photoPreview" style="display:none">
-        <img id="photoPreviewImg" alt="Selected photo">
-      </div>
-
-      <button class="generate-btn" id="generateBtn" onclick="generatePosts()">
-        <span>⚡</span> GENERATE POSTS
-      </button>
+  <!-- ══════════════ TOOL NAV BAR ══════════════ -->
+  <!-- Icon tabs — one per tool. Active tool highlighted in lime. -->
+  <div class="tool-nav">
+    <div class="tool-tab active" data-tool="social" onclick="switchTool('social')">
+      <div class="tool-tab-icon">⚡</div>
+      <div class="tool-tab-label">Social</div>
     </div>
-
-    <!-- Loading -->
-    <div class="loading-state" id="loadingState">
-      <div class="spin-record"></div>
-      <div class="loading-text" id="loadingText">Writing your posts...</div>
+    <div class="tool-tab" data-tool="spinning" onclick="switchTool('spinning')">
+      <div class="tool-tab-icon">💿</div>
+      <div class="tool-tab-label">Spinning</div>
+    </div>
+    <div class="tool-tab" data-tool="kitty" onclick="switchTool('kitty')">
+      <div class="tool-tab-icon">🎤</div>
+      <div class="tool-tab-label">Kitty Speaks</div>
+    </div>
+    <div class="tool-tab" data-tool="discovery" onclick="switchTool('discovery')">
+      <div class="tool-tab-icon">🔍</div>
+      <div class="tool-tab-label">Discovery</div>
     </div>
   </div>
 
-  <!-- ══════════════ SWIPE VIEW ══════════════ -->
-  <div class="view" id="view-swipe">
-    <div class="swipe-body">
-      <div class="swipe-counter" id="swipeCounter">0 posts to review</div>
+  <!-- ══════════════ TOOL PANELS ══════════════ -->
 
-      <div id="emptySwipe" class="empty-swipe">
-        <div class="empty-icon">💿</div>
-        <div class="empty-title">Nothing to swipe</div>
-        <div class="empty-sub">Generate some posts first, then come back here to approve or trash them.</div>
-        <button class="empty-cta" onclick="switchTab('generate')">Generate Posts</button>
-      </div>
+  <!-- ── SOCIAL ENGINE (existing, untouched) ── -->
+  <div class="tool-panel active" id="tool-social">
 
-      <div class="card-stack" id="cardStack" style="display:none"></div>
-
-      <div class="swipe-actions" id="swipeActions" style="display:none">
-        <button class="action-btn btn-reject" onclick="voteCard('reject')" title="Trash it">✕</button>
-        <button class="action-btn btn-regen" onclick="regenCard()" title="Regenerate">↻</button>
-        <button class="action-btn btn-approve" onclick="voteCard('approve')" title="Queue it">✓</button>
-      </div>
-      <div class="swipe-hint" id="swipeHint" style="display:none">Swipe right to queue · Swipe left to trash</div>
+    <!-- Inner nav tabs -->
+    <div class="nav-tabs">
+      <div class="nav-tab active" data-tab="generate" onclick="switchTab('generate')">✦ Generate</div>
+      <div class="nav-tab" data-tab="swipe" onclick="switchTab('swipe')">⟵ Swipe</div>
+      <div class="nav-tab" data-tab="queue" onclick="switchTab('queue')">📬 Queue</div>
     </div>
+
+    <!-- GENERATE VIEW -->
+    <div class="view active" id="view-generate">
+      <div class="generate-body" id="generateForm">
+
+        <div class="section-label">What are you posting about?</div>
+        <div class="post-type-grid">
+          <div class="post-type-btn selected" data-type="new_arrival" onclick="selectPostType(this)">
+            <div class="pt-icon">💿</div>
+            <span class="pt-label">New Arrival</span>
+            <div class="pt-desc">Fresh wax just dropped</div>
+          </div>
+          <div class="post-type-btn" data-type="sale" onclick="selectPostType(this)">
+            <div class="pt-icon">🔥</div>
+            <span class="pt-label">Sale / Deal</span>
+            <div class="pt-desc">Price drop or bundle</div>
+          </div>
+          <div class="post-type-btn" data-type="vinyl_therapy" onclick="selectPostType(this)">
+            <div class="pt-icon">🎵</div>
+            <span class="pt-label">Vinyl Therapy</span>
+            <div class="pt-desc">Story & culture post</div>
+          </div>
+          <div class="post-type-btn" data-type="spotlight" onclick="selectPostType(this)">
+            <div class="pt-icon">🎸</div>
+            <span class="pt-label">Artist Spotlight</span>
+            <div class="pt-desc">Hype a record/artist</div>
+          </div>
+          <div class="post-type-btn" data-type="whatsnew" onclick="selectPostType(this)">
+            <div class="pt-icon">📦</div>
+            <span class="pt-label">Haul Post</span>
+            <div class="pt-desc">Just picked these up</div>
+          </div>
+          <div class="post-type-btn" data-type="engagement" onclick="selectPostType(this)">
+            <div class="pt-icon">💬</div>
+            <span class="pt-label">Community</span>
+            <div class="pt-desc">Ask / poll the crowd</div>
+          </div>
+        </div>
+
+        <div class="section-label">Platform</div>
+        <div class="platform-row">
+          <div class="platform-btn selected" data-plat="facebook" onclick="selectPlatform(this)">
+            <span class="plat-icon">📘</span> Facebook
+          </div>
+          <div class="platform-btn" data-plat="instagram" onclick="selectPlatform(this)">
+            <span class="plat-icon">📸</span> Instagram
+          </div>
+          <div class="platform-btn" data-plat="both" onclick="selectPlatform(this)">
+            <span class="plat-icon">🔗</span> Both
+          </div>
+        </div>
+
+        <div class="section-label">Tone</div>
+        <div class="tone-row">
+          <div class="tone-btn selected" data-tone="raw" onclick="selectTone(this)">Raw & Real</div>
+          <div class="tone-btn" data-tone="hype" onclick="selectTone(this)">Hype Mode</div>
+          <div class="tone-btn" data-tone="nostalgic" onclick="selectTone(this)">Nostalgic</div>
+          <div class="tone-btn" data-tone="funny" onclick="selectTone(this)">Funny</div>
+          <div class="tone-btn" data-tone="educational" onclick="selectTone(this)">Deep Cut</div>
+        </div>
+
+        <div class="section-label">Details (optional but makes it better)</div>
+        <textarea class="input-field" id="detailsInput" rows="3"
+          placeholder="e.g. Just got a sealed copy of Pantera - Vulgar Display of Power on black vinyl. $45. Condition NM+"></textarea>
+
+        <div class="section-label">How many posts?</div>
+        <div class="platform-row" style="margin-bottom:24px">
+          <div class="platform-btn selected" data-count="1" onclick="selectCount(this)">1 post</div>
+          <div class="platform-btn" data-count="3" onclick="selectCount(this)">3 posts</div>
+          <div class="platform-btn" data-count="5" onclick="selectCount(this)">5 posts</div>
+        </div>
+
+        <div class="section-label">Photo (optional — snap the record)</div>
+        <div class="photo-upload-row">
+          <label class="photo-upload-btn" for="photoInput">
+            <span id="photoLabel">📷 Add a photo</span>
+            <input type="file" id="photoInput" accept="image/*"
+              onchange="handlePhotoSelect(this)" style="display:none">
+          </label>
+          <button class="photo-clear-btn" id="photoClearBtn" onclick="clearPhoto()" style="display:none">✕ Remove</button>
+        </div>
+        <div id="photoPreview" style="display:none">
+          <img id="photoPreviewImg" alt="Selected photo">
+        </div>
+
+        <button class="generate-btn" id="generateBtn" onclick="generatePosts()">
+          <span>⚡</span> GENERATE POSTS
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loadingState">
+        <div class="spin-record"></div>
+        <div class="loading-text" id="loadingText">Writing your posts...</div>
+      </div>
+    </div>
+
+    <!-- SWIPE VIEW -->
+    <div class="view" id="view-swipe">
+      <div class="swipe-body">
+        <div class="swipe-counter" id="swipeCounter">0 posts to review</div>
+        <div id="emptySwipe" class="empty-swipe">
+          <div class="empty-icon">💿</div>
+          <div class="empty-title">Nothing to swipe</div>
+          <div class="empty-sub">Generate some posts first, then come back here to approve or trash them.</div>
+          <button class="empty-cta" onclick="switchTab('generate')">Generate Posts</button>
+        </div>
+        <div class="card-stack" id="cardStack" style="display:none"></div>
+        <div class="swipe-actions" id="swipeActions" style="display:none">
+          <button class="action-btn btn-reject" onclick="voteCard('reject')" title="Trash it">✕</button>
+          <button class="action-btn btn-regen" onclick="regenCard()" title="Regenerate">↻</button>
+          <button class="action-btn btn-approve" onclick="voteCard('approve')" title="Queue it">✓</button>
+        </div>
+        <div class="swipe-hint" id="swipeHint" style="display:none">Swipe right to queue · Swipe left to trash</div>
+      </div>
+    </div>
+
+    <!-- QUEUE VIEW -->
+    <div class="view" id="view-queue">
+      <div class="queue-body">
+        <div id="queueEmpty" class="queue-empty">
+          <div class="queue-empty-icon">📭</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px">Queue is empty</div>
+          <div style="font-size:13px">Approve posts in the Swipe tab to add them here.</div>
+        </div>
+        <div class="queue-list" id="queueList"></div>
+      </div>
+    </div>
+
+  </div><!-- /tool-social -->
+
+  <!-- ── WHAT'S SPINNING (iframe) ── -->
+  <div class="tool-panel" id="tool-spinning">
+    <div class="iframe-toolbar">
+      <span class="iframe-tool-name">💿 What's Spinning</span>
+      <a class="iframe-open-btn" href="https://korndogrecords.com/korndog-spinning-generator.html" target="_blank">Open ↗</a>
+    </div>
+    <iframe
+      id="iframe-spinning"
+      class="tool-iframe"
+      src=""
+      data-src="https://korndogrecords.com/korndog-spinning-generator.html"
+      title="What's Spinning Generator"
+      loading="lazy">
+    </iframe>
   </div>
 
-  <!-- ══════════════ QUEUE VIEW ══════════════ -->
-  <div class="view" id="view-queue">
-    <div class="queue-body">
-      <div id="queueEmpty" class="queue-empty">
-        <div class="queue-empty-icon">📭</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:8px">Queue is empty</div>
-        <div style="font-size:13px">Approve posts in the Swipe tab to add them here.</div>
-      </div>
-      <div class="queue-list" id="queueList"></div>
+  <!-- ── KITTY SPEAKS (iframe) ── -->
+  <div class="tool-panel" id="tool-kitty">
+    <div class="iframe-toolbar">
+      <span class="iframe-tool-name">🎤 Kitty Speaks</span>
+      <a class="iframe-open-btn" href="https://korndogrecords.com/korndog-spotlight.html" target="_blank">Open ↗</a>
     </div>
+    <iframe
+      id="iframe-kitty"
+      class="tool-iframe"
+      src=""
+      data-src="https://korndogrecords.com/korndog-spotlight.html"
+      title="Kitty Speaks Generator"
+      loading="lazy">
+    </iframe>
   </div>
+
+  <!-- ── ARTIST DISCOVERY ── -->
+  <div class="tool-panel" id="tool-discovery">
+    <div class="discovery-body">
+
+      <div class="section-label">Search an Artist</div>
+      <div class="discovery-search-row">
+        <input class="input-field discovery-input" id="discoveryInput" type="text"
+          placeholder="e.g. Pantera, Sleep Token, Nirvana..."
+          onkeydown="if(event.key==='Enter') searchArtist()">
+        <button class="discovery-search-btn" onclick="searchArtist()">🔍</button>
+      </div>
+
+      <!-- Loading -->
+      <div class="discovery-loading" id="discoveryLoading" style="display:none">
+        <div class="spin-record" style="width:50px;height:50px"></div>
+        <div class="loading-text">Digging through the crates...</div>
+      </div>
+
+      <!-- Results -->
+      <div id="discoveryResults" style="display:none">
+        <div class="section-label" style="margin-top:20px" id="discoveryResultsLabel">Results</div>
+        <div class="discovery-artist-card" id="discoveryArtistCard"></div>
+
+        <div class="section-label" style="margin-top:20px">Discogs Inventory</div>
+        <div class="discovery-inventory" id="discoveryInventory"></div>
+
+        <div class="section-label" style="margin-top:20px">Generate a Post</div>
+        <div class="discovery-post-types">
+          <button class="discovery-post-btn" onclick="sendToSocial('spotlight')">
+            🎸 Artist Spotlight
+          </button>
+          <button class="discovery-post-btn" onclick="sendToSocial('vinyl_therapy')">
+            🎵 Vinyl Therapy Post
+          </button>
+          <button class="discovery-post-btn" onclick="sendToSocial('new_arrival')">
+            💿 New Arrival Post
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="discovery-empty" id="discoveryEmpty">
+        <div style="font-size:48px;margin-bottom:16px">🔍</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--lime);letter-spacing:2px">Find Your Artist</div>
+        <div style="font-size:13px;color:var(--text-dim);margin-top:8px">Search an artist to see their Discogs info and generate a post straight into the Social Engine.</div>
+      </div>
+
+    </div>
+  </div><!-- /tool-discovery -->
 
   <!-- EDIT MODAL -->
   <div class="modal-overlay" id="editModal">
@@ -178,5 +285,131 @@
   <div class="toast" id="toast"></div>
 
   <script src="app.js"></script>
+  <script>
+  // ── TOOL NAV ─────────────────────────────────────────────
+  function switchTool(tool) {
+    document.querySelectorAll('.tool-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.tool === tool);
+    });
+    document.querySelectorAll('.tool-panel').forEach(p => {
+      p.classList.toggle('active', p.id === 'tool-' + tool);
+    });
+
+    // Lazy-load iframes on first visit
+    const iframe = document.querySelector(`#tool-${tool} iframe`);
+    if (iframe && !iframe.src && iframe.dataset.src) {
+      iframe.src = iframe.dataset.src;
+    }
+  }
+
+  // ── DISCOVERY ────────────────────────────────────────────
+  let discoveryArtist = null; // holds current artist name + data
+
+  async function searchArtist() {
+    const query = document.getElementById('discoveryInput').value.trim();
+    if (!query) return;
+
+    document.getElementById('discoveryEmpty').style.display   = 'none';
+    document.getElementById('discoveryResults').style.display = 'none';
+    document.getElementById('discoveryLoading').style.display = 'flex';
+
+    try {
+      // Search Discogs for artist
+      const res  = await fetch(`https://api.discogs.com/database/search?q=${encodeURIComponent(query)}&type=artist&per_page=1`, {
+        headers: { 'User-Agent': 'KornDogRecords/1.0' }
+      });
+      const data = await res.json();
+      const artist = data?.results?.[0];
+
+      if (!artist) {
+        document.getElementById('discoveryLoading').style.display = 'none';
+        document.getElementById('discoveryEmpty').style.display   = 'flex';
+        document.getElementById('discoveryEmpty').querySelector('div:last-child').textContent = 'No results found. Try a different spelling.';
+        return;
+      }
+
+      discoveryArtist = { name: artist.title, thumb: artist.thumb, id: artist.id };
+
+      // Render artist card
+      document.getElementById('discoveryArtistCard').innerHTML = `
+        <div class="d-artist-row">
+          ${artist.thumb ? `<img class="d-artist-thumb" src="${artist.thumb}" alt="${artist.title}">` : '<div class="d-artist-thumb-placeholder">🎸</div>'}
+          <div>
+            <div class="d-artist-name">${artist.title}</div>
+            <div class="d-artist-meta">Discogs Artist</div>
+          </div>
+        </div>
+      `;
+
+      // Search Discogs for releases by this artist (simulate inventory)
+      const relRes  = await fetch(`https://api.discogs.com/database/search?q=${encodeURIComponent(query)}&type=release&per_page=5`, {
+        headers: { 'User-Agent': 'KornDogRecords/1.0' }
+      });
+      const relData = await relRes.json();
+      const releases = relData?.results || [];
+
+      const invEl = document.getElementById('discoveryInventory');
+      if (releases.length === 0) {
+        invEl.innerHTML = '<div style="color:var(--text-dim);font-size:13px">No releases found on Discogs.</div>';
+      } else {
+        invEl.innerHTML = releases.map(r => `
+          <div class="d-release-row" onclick="selectRelease('${escHtmlInline(r.title)}', '${escHtmlInline(r.year||'')}', '${escHtmlInline(r.format?.[0]||'Vinyl')}')">
+            ${r.thumb ? `<img class="d-release-thumb" src="${r.thumb}" alt="">` : '<div class="d-release-thumb-placeholder">💿</div>'}
+            <div class="d-release-info">
+              <div class="d-release-title">${r.title}</div>
+              <div class="d-release-meta">${r.year || ''} ${r.format?.[0] ? '· ' + r.format[0] : ''} ${r.label?.[0] ? '· ' + r.label[0] : ''}</div>
+            </div>
+            <div class="d-release-arrow">→</div>
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('discoveryLoading').style.display  = 'none';
+      document.getElementById('discoveryResults').style.display  = 'block';
+
+    } catch (err) {
+      console.error('[discovery]', err);
+      document.getElementById('discoveryLoading').style.display = 'none';
+      document.getElementById('discoveryEmpty').style.display   = 'flex';
+    }
+  }
+
+  // Track selected release
+  let selectedRelease = null;
+  function selectRelease(title, year, format) {
+    selectedRelease = { title, year, format };
+    // Highlight selected
+    document.querySelectorAll('.d-release-row').forEach(r => r.classList.remove('selected'));
+    event.currentTarget.classList.add('selected');
+    showToast(`✦ ${title} selected`);
+  }
+
+  function escHtmlInline(str) {
+    return (str || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+  }
+
+  // ── SEND TO SOCIAL ENGINE ─────────────────────────────────
+  // This is the key connection — Discovery → Social Engine
+  function sendToSocial(postType) {
+    if (!discoveryArtist) return;
+
+    const artist  = discoveryArtist.name;
+    const release = selectedRelease;
+    let details   = `Artist: ${artist}`;
+    if (release) {
+      details += `\nAlbum: ${release.title}`;
+      if (release.year)   details += `\nYear: ${release.year}`;
+      if (release.format) details += `\nFormat: ${release.format}`;
+    }
+
+    // Switch to Social Engine
+    switchTool('social');
+
+    // Pre-fill the generate form
+    prefillGenerate(details, postType);
+
+    showToast('✦ Loaded into Social Engine!');
+  }
+  </script>
 </body>
 </html>
