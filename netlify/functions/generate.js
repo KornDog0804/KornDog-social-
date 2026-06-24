@@ -196,7 +196,7 @@ async function callOpenAI(prompt, tokens, image) {
 // ── Gemini ────────────────────────────────────────────────────
 async function callGemini(prompt, tokens, image) {
   const apiKey      = requireEnv('GEMINI_API_KEY');
-  const cleanModel  = (process.env.GEMINI_MODEL || 'gemini-1.5-flash').replace('models/', '');
+  const cleanModel  = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').replace('models/', '');
   const url         = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
 
   // Build parts — image first if present, then text
