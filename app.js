@@ -665,6 +665,30 @@ function escHtml(str) {
     .replace(/"/g,  '&quot;');
 }
 
+// ── PREFILL FROM DISCOVERY ────────────────────────────────────
+// Called by the Discovery tab to inject artist/release details
+// directly into the Generate form and set the post type.
+function prefillGenerate(details, postType) {
+  // Set details textarea
+  const ta = document.getElementById('detailsInput');
+  if (ta) ta.value = details;
+
+  // Set post type button
+  if (postType) {
+    const btn = document.querySelector(`.post-type-btn[data-type="${postType}"]`);
+    if (btn) selectPostType(btn);
+  }
+
+  // Switch to generate tab
+  switchTab('generate');
+
+  // Scroll details into view
+  setTimeout(() => {
+    const el = document.getElementById('detailsInput');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 200);
+}
+
 // ── INIT ──────────────────────────────────────────────────────
 updateBadge();
 if (state.pending.length > 0) renderSwipe();
