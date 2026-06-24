@@ -616,24 +616,60 @@ function saveEdit() {
 
 // ── UTILS ─────────────────────────────────────────────────────
 async function copyPost(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    showToast('📋 Copied!');
-  } catch {
+  // Try modern clipboard API first
+  if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
+      await navigator.clipboard.writeText(text);
       showToast('📋 Copied!');
-    } catch {
-      showToast('Copy failed — select text manually.');
-    }
+      return;
+    } catch (e) { /* fall through to manual fallback */ }
   }
+
+  // Android/mobile fallback — show a selectable textarea sheet
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.85);
+    z-index:9999;display:flex;align-items:flex-end;
+  `;
+
+  overlay.innerHTML = `
+    <div style="
+      width:100%;background:#1e1e1e;border-radius:20px 20px 0 0;
+      padding:20px;max-height:70dvh;overflow-y:auto;
+    ">
+      <div style="
+        width:40px;height:4px;background:#333;border-radius:2px;
+        margin:0 auto 16px;
+      "></div>
+      <div style="
+        font-family:'Bebas Neue',sans-serif;font-size:20px;
+        color:#7FD41A;letter-spacing:1px;margin-bottom:12px;
+      ">Select All & Copy</div>
+      <textarea id="copyFallbackTA" readonly style="
+        width:100%;background:#141414;border:1.5px solid #7FD41A;
+        border-radius:12px;padding:14px;color:#f0f0f0;
+        font-family:'Barlow',sans-serif;font-size:14px;
+        line-height:1.6;resize:none;min-height:160px;outline:none;
+      ">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      <div style="font-size:12px;color:#888;margin:10px 0 16px;">
+        Tap the text above → Select All → Copy
+      </div>
+      <button onclick="this.closest('div[style]').parentElement.remove()" style="
+        width:100%;background:#7FD41A;color:#0a0a0a;border:none;
+        border-radius:12px;padding:14px;font-family:'Bebas Neue',sans-serif;
+        font-size:20px;letter-spacing:1px;cursor:pointer;
+      ">DONE</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // Auto-select the text
+  setTimeout(() => {
+    const ta = document.getElementById('copyFallbackTA');
+    if (ta) { ta.focus(); ta.select(); }
+  }, 100);
 }
 
 function showToast(msg) {
