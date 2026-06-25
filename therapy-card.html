@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KornDog Therapy Card</title>
+<style>
+  :root {
+    --lime:   #7FD41A;
+    --purple: #4a1a8a;
+    --dark:   #0a0a0a;
+    --mid:    #141414;
+    --panel:  #1a1a1a;
+    --gold:   #c9a227;
+    --cream:  #f0ead6;
+    --white:  #f0f0f0;
+    --grey:   #888888;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0d0d0d;
+    color: var(--white);
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 16px 40px;
+  }
+
+  /* ── Header ── */
+  .app-header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--lime);
+  }
+  .app-header h1 {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: var(--lime);
+    line-height: 1.1;
+  }
+  .app-header p {
+    font-size: 12px;
+    color: var(--grey);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Form ── */
+  .form-section {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  .photo-drop {
+    width: 100%;
+    background: var(--panel);
+    border: 2px dashed var(--lime);
+    border-radius: 12px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 16px;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .photo-drop:active { background: #222; }
+  .photo-drop input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .photo-drop .drop-icon { font-size: 40px; margin-bottom: 8px; }
+  .photo-drop .drop-label {
+    font-size: 18px; font-weight: 700; color: var(--lime); letter-spacing: 1px;
+  }
+  .photo-drop .drop-sub { font-size: 13px; color: var(--grey); margin-top: 4px; }
+
+  #photoThumb {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid var(--lime);
+    display: none;
+    margin-bottom: 16px;
+  }
+
+  .generate-btn {
+    width: 100%;
+    background: var(--lime);
+    color: #0a0a0a;
+    border: none;
+    border-radius: 12px;
+    padding: 18px;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 2px;
+    cursor: pointer;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    transition: opacity 0.2s;
+  }
+  .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .status-msg {
+    text-align: center;
+    color: var(--lime);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    min-height: 24px;
+    margin-bottom: 16px;
+  }
+
+  /* ── Editable Fields (shown after AI fills them) ── */
+  .fields-section {
+    display: none;
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 20px;
+  }
+  .fields-section.visible { display: block; }
+
+  .fields-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .field-full { grid-column: 1 / -1; }
+
+  .field-group label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--lime);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .field-group input,
+  .field-group select,
+  .field-group textarea {
+    width: 100%;
+    background: var(--panel);
+    border: 1.5px solid #333;
+    border-radius: 8px;
+    color: var(--white);
+    font-size: 14px;
+    padding: 10px 12px;
+    font-family: Arial, sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .field-group input:focus,
+  .field-group select:focus,
+  .field-group textarea:focus { border-color: var(--lime); }
+  .field-group select option { background: #1a1a1a; }
+  .field-group textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+
+  .action-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .btn-download {
+    flex: 1;
+    background: var(--lime);
+    color: #0a0a0a;
+    border: none;
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+  }
+  .btn-regen {
+    flex: 0 0 auto;
+    background: var(--panel);
+    color: var(--lime);
+    border: 2px solid var(--lime);
+    border-radius: 10px;
+    padding: 16px 20px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── Preview Canvas ── */
+  #previewWrap {
+    width: 100%;
+    max-width: 480px;
+    margin-bottom: 20px;
+    display: none;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(127,212,26,0.15);
+  }
+  #previewWrap.visible { display: block; }
+  #previewCanvas {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--lime); color: #0a0a0a;
+    padding: 12px 24px; border-radius: 100px;
+    font-weight: 700; font-size: 15px; letter-spacing: 1px;
+    transition: transform 0.3s; z-index: 9999; white-space: nowrap;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <h1>🎴 THERAPY CARD</h1>
+    <p>KornDog Records · Vinyl Session Generator</p>
+  </div>
+</header>
+
+<div class="form-section">
+  <!-- Photo upload -->
+  <div class="photo-drop" id="photoDrop">
+    <input type="file" accept="image/*" capture="environment" id="photoInput" onchange="handlePhoto(this)">
+    <div class="drop-icon">📷</div>
+    <div class="drop-label">TAP TO SNAP THE RECORD</div>
+    <div class="drop-sub">Camera or library · AI reads the cover automatically</div>
+  </div>
+
+  <img id="photoThumb" alt="Record photo">
+
+  <div class="status-msg" id="statusMsg"></div>
+
+  <button class="generate-btn" id="generateBtn" onclick="generateCard()" disabled>
+    ⚡ GENERATE THERAPY CARD
+  </button>
+</div>
+
+<!-- Editable fields — shown after AI fills them -->
+<div class="fields-section" id="fieldsSection">
+  <div class="fields-grid">
+    <div class="field-group field-full">
+      <label>Artist</label>
+      <input type="text" id="f_artist" placeholder="Bobby Bland & B.B. King">
+    </div>
+    <div class="field-group field-full">
+      <label>Album Title</label>
+      <input type="text" id="f_album" placeholder="Together Again... Live">
+    </div>
+    <div class="field-group">
+      <label>Genre</label>
+      <input type="text" id="f_genre" placeholder="Blues">
+    </div>
+    <div class="field-group">
+      <label>Format</label>
+      <select id="f_format">
+        <option>Vinyl</option>
+        <option>45 RPM</option>
+        <option>12" Single</option>
+        <option>7" Single</option>
+        <option>Picture Disc</option>
+        <option>Colored Vinyl</option>
+      </select>
+    </div>
+    <div class="field-group field-full">
+      <label>Vibe</label>
+      <input type="text" id="f_vibe" placeholder="2AM whiskey & hard truths">
+    </div>
+    <div class="field-group field-full">
+      <label>Joey Says</label>
+      <textarea id="f_joey" placeholder="Short raw review in Joey's voice..."></textarea>
+    </div>
+    <div class="field-group">
+      <label>Therapy Score</label>
+      <input type="text" id="f_score" placeholder="9.5">
+    </div>
+    <div class="field-group">
+      <label>Vinyl Grade</label>
+      <select id="f_vinyl">
+        <option>M</option><option>NM</option><option selected>VG+</option>
+        <option>VG</option><option>G+</option><option>G</option><option>F</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Jacket Grade</label>
+      <select id="f_jacket">
+        <option>M</option><option>NM</option><option selected>VG+</option>
+        <option>VG</option><option>G+</option><option>G</option><option>F</option>
+      </select>
+    </div>
+    <div class="field-group">
+      <label>Kitty Pick</label>
+      <select id="f_kitty">
+        <option>Crate Gold</option>
+        <option>Late Night Spin</option>
+        <option>Sunday Morning</option>
+        <option>Heavy Rotation</option>
+        <option>Deep Cut</option>
+        <option>Store Favorite</option>
+        <option>Therapy Classic</option>
+        <option>Dusty Gem</option>
+        <option>Wall Worthy</option>
+        <option>Keeper Copy</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="action-btns">
+    <button class="btn-download" onclick="downloadCard()">📥 DOWNLOAD CARD</button>
+    <button class="btn-regen" onclick="regenCard()">↻ REDO</button>
+  </div>
+</div>
+
+<!-- Canvas preview -->
+<div id="previewWrap">
+  <canvas id="previewCanvas"></canvas>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Mock AI flag — set to false when ready for live testing ──
+const USE_MOCK_AI = true;
+
+// ── State ─────────────────────────────────────────────────────
+let photoBase64    = null;
+let photoDataUrl   = null;
+// sessionNum = last confirmed/saved number.
+// currentSessStr = session shown on the preview card (next number, not yet saved).
+// Only increments + saves to localStorage when user actually downloads.
+let sessionNum     = parseInt(localStorage.getItem('kd_therapy_session') || '0', 10);
+let currentSessStr = String(sessionNum + 1).padStart(3, '0');
+let photoMimeType  = 'image/jpeg'; // updated when photo is selected
+
+// ── Photo handling ────────────────────────────────────────────
+function handlePhoto(input) {
+  const file = input.files?.[0];
+  if (!file) return;
+
+  photoMimeType = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoDataUrl = e.target.result;
+    photoBase64  = photoDataUrl.split(',')[1];
+
+    const thumb = document.getElementById('photoThumb');
+    thumb.src = photoDataUrl;
+    thumb.style.display = 'block';
+
+    document.getElementById('photoDrop').style.display = 'none';
+    document.getElementById('generateBtn').disabled = false;
+    setStatus('Photo loaded — tap Generate!');
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Status ────────────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('statusMsg').textContent = msg;
+}
+
+// ── Generate card via AI ──────────────────────────────────────
+async function generateCard() {
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  setStatus('⚡ AI reading the record cover...');
+
+  const messages = [
+    '⚡ AI reading the record cover...',
+    '🎵 Identifying artist & album...',
+    '💬 Writing Joey Says...',
+    '⭐ Calculating Therapy Score...',
+    '🎴 Building your card...',
+  ];
+  let mi = 0;
+  const ticker = setInterval(() => {
+    setStatus(messages[++mi % messages.length]);
+  }, 1800);
+
+  try {
+    const prompt = `You are the KornDog Records AI. Analyze this vinyl record cover photo and return ONLY a valid JSON object with these exact fields. No markdown, no explanation, just raw JSON.
+
+{
+  "artist": "Full artist name as it appears on the cover",
+  "albumTitle": "Full album title as it appears on the cover",
+  "genre": "One or two word genre (Blues, Rock, Soul, Metal, Hip-Hop, Jazz, Country, R&B, Funk, Punk, etc)",
+  "vibe": "A 3-6 word atmospheric description. Examples: '2AM whiskey & hard truths', 'Smoke-filled club soul', 'Concrete riffs & bad decisions', 'Velvet heartbreak groove'",
+  "joeySays": "2-5 short lines in the voice of Joey — a real record store guy behind the counter. Raw, human, specific. No music magazine language. No 'available now'. No 'don't miss out'. No 'a must-have for fans'. Sound like you actually love or hate this record and why.",
+  "therapyScore": "A number from 1.0 to 10.0 based on emotional impact and cultural weight of this record",
+  "kittyPick": "One of: Crate Gold, Late Night Spin, Sunday Morning, Heavy Rotation, Deep Cut, Store Favorite, Therapy Classic, Dusty Gem, Wall Worthy, Keeper Copy",
+  "hashtags": "#KorndogRecords #VinylTherapy and 3-4 more relevant tags as a single string"
+}
+
+If you cannot read the cover clearly, make your best educated guess from what is visible. Always return valid JSON.`;
+
+    let raw;
+    if (USE_MOCK_AI) {
+      // ── MOCK — zero API cost for UI testing ────────────────
+      await new Promise(r => setTimeout(r, 1200)); // fake latency
+      raw = JSON.stringify({
+        artist:        "Bobby Bland & B.B. King",
+        albumTitle:    "Together Again... Live",
+        genre:         "Blues",
+        vibe:          "2AM whiskey & hard truths",
+        joeySays:      "B.B. and Bobby don't sing songs.\nThey testify.\nWhen two old kings meet on stage,\nyou don't get a show.\nYou get church.",
+        therapyScore:  "9.5",
+        kittyPick:     "Crate Gold",
+        hashtags:      "#KorndogRecords #VinylTherapy #BluesMusic #LiveMusic #BBKing #BobbyBland"
+      });
+    } else {
+      const res = await fetch('/.netlify/functions/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          maxTokens:     1000,
+          imageBase64:   photoBase64,
+          imageMimeType: photoMimeType,
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `Function error (${res.status})`);
+      raw = (data?.text || '').trim();
+    }
+
+    // Strip any markdown fences
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const card  = JSON.parse(clean);
+
+    // Fill fields
+    document.getElementById('f_artist').value = card.artist     || '';
+    document.getElementById('f_album').value  = card.albumTitle  || '';
+    document.getElementById('f_genre').value  = card.genre       || '';
+    document.getElementById('f_vibe').value   = card.vibe        || '';
+    document.getElementById('f_joey').value   = card.joeySays    || '';
+    document.getElementById('f_score').value  = card.therapyScore|| '9.5';
+    document.getElementById('f_kitty').value  = card.kittyPick   || 'Crate Gold';
+
+    // Store hashtags for rendering
+    window._hashtags = card.hashtags || '#KorndogRecords #VinylTherapy';
+
+    // Show fields + render card
+    document.getElementById('fieldsSection').classList.add('visible');
+    await renderCard();
+    setStatus('✦ Card generated! Tweak any field below.');
+
+  } catch (err) {
+    console.error(err);
+    setStatus('Something went wrong — try again.');
+    btn.disabled = false;
+  } finally {
+    clearInterval(ticker);
+    btn.disabled = false;
+  }
+}
+
+// ── Re-render when fields change ──────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  ['f_artist','f_album','f_genre','f_vibe','f_joey','f_score',
+   'f_vinyl','f_jacket','f_kitty','f_format'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', debounce(renderCard, 400));
+    if (el) el.addEventListener('change', () => renderCard());
+  });
+});
+
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+
+async function regenCard() {
+  document.getElementById('fieldsSection').classList.remove('visible');
+  document.getElementById('previewWrap').classList.remove('visible');
+  document.getElementById('photoDrop').style.display = 'block';
+  document.getElementById('photoThumb').style.display = 'none';
+  document.getElementById('generateBtn').disabled = true;
+  photoBase64 = null; photoDataUrl = null;
+  setStatus('');
+  document.getElementById('photoInput').value = '';
+}
+
+// ── CARD RENDERER ─────────────────────────────────────────────
+async function renderCard() {
+  const artist  = document.getElementById('f_artist').value  || 'ARTIST';
+  const album   = document.getElementById('f_album').value   || 'ALBUM TITLE';
+  const genre   = document.getElementById('f_genre').value   || 'Genre';
+  const format  = document.getElementById('f_format').value  || 'Vinyl';
+  const vibe    = document.getElementById('f_vibe').value    || 'Vinyl therapy';
+  const joey    = document.getElementById('f_joey').value    || '';
+  const score   = document.getElementById('f_score').value   || '9.5';
+  const vinyl   = document.getElementById('f_vinyl').value   || 'VG+';
+  const jacket  = document.getElementById('f_jacket').value  || 'VG+';
+  const kitty   = document.getElementById('f_kitty').value   || 'Crate Gold';
+  const hashtags= window._hashtags || '#KorndogRecords #VinylTherapy';
+
+  // Use the pending session number (not yet saved — saved only on download)
+  const sessStr = currentSessStr;
+
+  const W = 1080;
+  const H = 1520; // slightly taller for full card feel
+
+  const LIME   = '#7FD41A';
+  const PURPLE = '#4a1a8a';
+  const DARK   = '#0a0a0a';
+  const GOLD   = '#c9a227';
+  const CREAM  = '#f0ead6';
+  const PANEL  = '#111111';
+  const PANEL2 = '#161616';
+
+  const canvas = document.getElementById('previewCanvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // helpers
+  function loadImg(src) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload  = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
+    });
+  }
+
+  function wrapText(txt, maxW, font) {
+    ctx.font = font;
+    const words = (txt || '').split(' ');
+    const lines = []; let cur = '';
+    for (const w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+      else cur = test;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+    ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+h-r);
+    ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+    ctx.lineTo(x+r,y+h);
+    ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+    ctx.lineTo(x,y+r);
+    ctx.quadraticCurveTo(x,y,x+r,y);
+    ctx.closePath();
+  }
+
+  // Load assets in parallel
+  const [logoImg, kittyImg, photoImg] = await Promise.all([
+    loadImg('https://korndogrecords.com/images/Screenshot_20250831-144625.png'),
+    loadImg('https://korndogrecords.com/images/3817.png'),
+    photoDataUrl ? new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = photoDataUrl;
+    }) : Promise.resolve(null)
+  ]);
+
+  // ── PSA SLAB OUTER SHELL ──────────────────────────────────
+  // Dark grey slab border
+  const SLAB_PAD = 24;
+  ctx.fillStyle = '#1c1c1c';
+  ctx.fillRect(0, 0, W, H);
+
+  // Slab inner background
+  const SLAB_X = SLAB_PAD;
+  const SLAB_Y = SLAB_PAD;
+  const SLAB_W = W - SLAB_PAD * 2;
+  const SLAB_H = H - SLAB_PAD * 2;
+  ctx.fillStyle = DARK;
+  roundRect(SLAB_X, SLAB_Y, SLAB_W, SLAB_H, 16);
+  ctx.fill();
+
+  // Outer slab rim highlight
+  ctx.strokeStyle = '#333333';
+  ctx.lineWidth   = 2;
+  roundRect(SLAB_X, SLAB_Y, SLAB_W, SLAB_H, 16);
+  ctx.stroke();
+
+  // ── ZONE LAYOUT ───────────────────────────────────────────
+  const IX = SLAB_X + 16; // inner X
+  const IW = SLAB_W - 32; // inner width
+  const IY = SLAB_Y + 16;
+
+  // Top label bar height
+  const LABEL_H = 150;
+  // Photo section
+  const PHOTO_Y = IY + LABEL_H + 8;
+  const PHOTO_H = 460;
+  // Gold card border padding
+  const CARD_PAD = 10;
+  // Stats panel
+  const STATS_Y  = PHOTO_Y + PHOTO_H + CARD_PAD + 16;
+  const STATS_H  = 300;
+  // Footer
+  const FOOT_Y   = STATS_Y + STATS_H + 12;
+  const FOOT_H   = H - FOOT_Y - SLAB_PAD - 16;
+
+  // ── 1. PSA LABEL BAR ──────────────────────────────────────
+  // Cream background label
+  ctx.fillStyle = CREAM;
+  roundRect(IX, IY, IW, LABEL_H, 10);
+  ctx.fill();
+
+  // Purple top stripe on label
+  ctx.fillStyle = PURPLE;
+  roundRect(IX, IY, IW, 18, 10);
+  ctx.fill();
+  ctx.fillRect(IX, IY + 8, IW, 10); // flatten bottom of stripe
+
+  // KornDog logo circle — left of label
+  if (logoImg) {
+    const lSize = 110;
+    const lX    = IX + 10;
+    const lY    = IY + (LABEL_H - lSize) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI*2);
+    ctx.clip();
+    ctx.drawImage(logoImg, lX, lY, lSize, lSize);
+    ctx.restore();
+    // Circle border
+    ctx.strokeStyle = PURPLE;
+    ctx.lineWidth   = 3;
+    ctx.beginPath();
+    ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI*2);
+    ctx.stroke();
+  }
+
+  // Label text
+  const LTX = IX + 132; // text start X
+  const LTW = IW - 132 - 130; // text width (leave room for grade)
+
+  ctx.textAlign = 'left';
+
+  // "1990 KORNDOG"
+  ctx.fillStyle = '#222222';
+  ctx.font      = 'bold 22px Arial, sans-serif';
+  ctx.fillText('1990 KORNDOG', LTX, IY + 44);
+
+  // Session number — purple
+  ctx.fillStyle = PURPLE;
+  ctx.font      = 'bold 22px Arial, sans-serif';
+  const sess1W = ctx.measureText('1990 KORNDOG  ').width;
+  ctx.fillText(`#${sessStr}`, LTX + sess1W, IY + 44);
+
+  // Artist name — big bold
+  ctx.fillStyle = '#111111';
+  ctx.font      = 'bold 30px Arial Black, Arial, sans-serif';
+  const artistLines = wrapText(artist.toUpperCase(), LTW, 'bold 30px Arial Black, Arial, sans-serif');
+  artistLines.slice(0, 2).forEach((l, i) => ctx.fillText(l, LTX, IY + 78 + i * 32));
+
+  // Album title — purple italic
+  ctx.fillStyle = PURPLE;
+  ctx.font      = 'italic bold 20px Arial, sans-serif';
+  ctx.fillText(album.toUpperCase(), LTX, IY + 78 + Math.min(artistLines.length, 2) * 32 + 4);
+
+  // Barcode simulation — deterministic so it doesn't flicker on re-render
+  const bcY = IY + LABEL_H - 28;
+  ctx.fillStyle = '#222';
+  ctx.font      = '11px monospace';
+  ctx.fillText('VINYL THERAPY SESSION', LTX + 80, bcY + 16);
+  const barcodeSeed = sessStr + artist + album;
+  for (let b = 0; b < 60; b++) {
+    const code = barcodeSeed.charCodeAt(b % barcodeSeed.length);
+    const bw   = code % 3 === 0 ? 3 : code % 2 === 0 ? 2 : 1;
+    ctx.fillStyle = '#222';
+    ctx.fillRect(LTX + b * 2.2, bcY, bw, 12);
+  }
+
+  // GEM MT grade — right side of label
+  const GX = IX + IW - 118;
+  ctx.fillStyle = '#222222';
+  ctx.font      = 'bold 16px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('GEM MT', GX + 50, IY + 44);
+  ctx.font      = 'bold 72px Arial Black, Arial, sans-serif';
+  ctx.fillText('10', GX + 50, IY + 118);
+
+  // ── 2. GOLD CARD FRAME + PHOTO ─────────────────────────────
+  // Gold gradient border
+  const grd = ctx.createLinearGradient(IX, PHOTO_Y, IX + IW, PHOTO_Y + PHOTO_H);
+  grd.addColorStop(0,   '#f0c040');
+  grd.addColorStop(0.3, '#c9a227');
+  grd.addColorStop(0.7, '#e8b820');
+  grd.addColorStop(1,   '#a07010');
+  ctx.fillStyle = grd;
+  roundRect(IX, PHOTO_Y, IW, PHOTO_H, 12);
+  ctx.fill();
+
+  // Photo inside gold border
+  const PP = CARD_PAD; // photo padding inside gold border
+  if (photoImg) {
+    const pX = IX + PP;
+    const pY = PHOTO_Y + PP;
+    const pW = IW - PP * 2;
+    const pH = PHOTO_H - PP * 2;
+    const scale = Math.max(pW / photoImg.width, pH / photoImg.height);
+    const sw    = photoImg.width  * scale;
+    const sh    = photoImg.height * scale;
+    const sx    = pX + (pW - sw) / 2;
+    const sy    = pY + (pH - sh) / 2;
+
+    ctx.save();
+    roundRect(pX, pY, pW, pH, 6);
+    ctx.clip();
+    ctx.drawImage(photoImg, sx, sy, sw, sh);
+    ctx.restore();
+  } else {
+    // Placeholder
+    ctx.fillStyle = '#222';
+    roundRect(IX + PP, PHOTO_Y + PP, IW - PP*2, PHOTO_H - PP*2, 6);
+    ctx.fill();
+    ctx.fillStyle = '#444';
+    ctx.font = 'bold 28px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('RECORD PHOTO', IX + IW/2, PHOTO_Y + PHOTO_H/2);
+  }
+
+  // "REAL MUSIC. REAL SOUL." badge — bottom right of photo
+  const bdX = IX + IW - 112;
+  const bdY = PHOTO_Y + PHOTO_H - 120;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(bdX, bdY, 52, 0, Math.PI*2);
+  ctx.fillStyle = LIME;
+  ctx.fill();
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth   = 3;
+  ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#0a0a0a';
+  ctx.font      = 'bold 13px Arial Black, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('REAL', bdX, bdY - 18);
+  ctx.fillText('MUSIC.', bdX, bdY - 2);
+  ctx.fillText('REAL', bdX, bdY + 14);
+  ctx.fillText('SOUL.', bdX, bdY + 30);
+
+  // ── 3. STATS PANEL — 3 columns ─────────────────────────────
+  ctx.fillStyle = PANEL;
+  roundRect(IX, STATS_Y, IW, STATS_H, 10);
+  ctx.fill();
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth   = 1.5;
+  roundRect(IX, STATS_Y, IW, STATS_H, 10);
+  ctx.stroke();
+
+  const COL_W = IW / 3;
+
+  // Column dividers
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth   = 1.5;
+  [1, 2].forEach(n => {
+    ctx.beginPath();
+    ctx.moveTo(IX + COL_W * n, STATS_Y + 16);
+    ctx.lineTo(IX + COL_W * n, STATS_Y + STATS_H - 16);
+    ctx.stroke();
+  });
+
+  // ── COL 1: Genre / Format / Vibe ───────────────────────────
+  const C1X = IX + 16;
+  let   c1Y = STATS_Y + 32;
+
+  function statRow(icon, label, value, x, y, maxW) {
+    ctx.fillStyle = LIME;
+    ctx.font      = '18px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(icon, x, y);
+
+    ctx.fillStyle = '#666666';
+    ctx.font      = 'bold 11px Arial, sans-serif';
+    ctx.fillText(label, x + 26, y - 10);
+
+    ctx.fillStyle = '#f0f0f0';
+    ctx.font      = 'bold 18px Arial Black, Arial, sans-serif';
+    const lines = wrapText(value.toUpperCase(), maxW - 26, 'bold 18px Arial Black, Arial, sans-serif');
+    lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, x + 26, y + 6 + i * 22));
+    return y + 28 + Math.max(0, lines.length - 1) * 22;
+  }
+
+  c1Y = statRow('🎵', 'GENRE',  genre,  C1X, c1Y, COL_W - 20);
+  c1Y += 18;
+  c1Y = statRow('💿', 'FORMAT', format, C1X, c1Y, COL_W - 20);
+  c1Y += 18;
+       statRow('✨', 'VIBE',   vibe,   C1X, c1Y, COL_W - 20);
+
+  // ── COL 2: Joey Says ───────────────────────────────────────
+  const C2X = IX + COL_W + 16;
+  let   c2Y = STATS_Y + 24;
+
+  ctx.fillStyle = LIME;
+  ctx.font      = 'italic bold 24px Georgia, serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('JOEY SAYS:', C2X, c2Y + 16);
+
+  // Big quote mark
+  ctx.fillStyle = 'rgba(127,212,26,0.18)';
+  ctx.font      = 'bold 80px Georgia, serif';
+  ctx.fillText('"', C2X - 4, c2Y + 90);
+
+  ctx.fillStyle = '#cccccc';
+  ctx.font      = '18px Arial, sans-serif';
+  const joeyLines = joey.split('\n').flatMap(line =>
+    wrapText(line, COL_W - 36, '18px Arial, sans-serif')
+  );
+  c2Y += 44;
+  joeyLines.slice(0, 8).forEach(l => {
+    ctx.fillText(l, C2X, c2Y);
+    c2Y += 26;
+  });
+
+  // Zombie Kitty in Joey Says column bottom
+  if (kittyImg) {
+    const kH = 80;
+    const kW = (kittyImg.width / kittyImg.height) * kH;
+    ctx.drawImage(kittyImg, C2X + COL_W - kW - 20, STATS_Y + STATS_H - kH - 8, kW, kH);
+  }
+
+  // ── COL 3: Scores ──────────────────────────────────────────
+  const C3X = IX + COL_W * 2 + 16;
+  let   c3Y = STATS_Y + 28;
+  const C3W = COL_W - 24;
+
+  function scoreRow(icon, label, value, x, y) {
+    ctx.fillStyle = LIME;
+    ctx.font      = '16px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(icon + ' ' + label, x, y);
+
+    ctx.fillStyle = '#f0f0f0';
+    ctx.font      = 'bold 28px Arial Black, Arial, sans-serif';
+    ctx.fillText(value, x, y + 28);
+
+    // Underline
+    ctx.strokeStyle = '#2a2a2a';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 38); ctx.lineTo(x + C3W, y + 38);
+    ctx.stroke();
+    return y + 52;
+  }
+
+  // Therapy Score
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 13px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('💜 THERAPY SCORE', C3X, c3Y);
+  c3Y += 6;
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 56px Arial Black, Arial, sans-serif';
+  ctx.fillText(score, C3X, c3Y + 52);
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 24px Arial, sans-serif';
+  ctx.fillText('/10', C3X + ctx.measureText(score).width + 4, c3Y + 52);
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(C3X, c3Y + 60); ctx.lineTo(C3X + C3W, c3Y + 60);
+  ctx.stroke();
+  c3Y += 72;
+
+  c3Y = scoreRow('💿', 'VINYL GRADE',  vinyl,  C3X, c3Y);
+  c3Y += 4;
+  c3Y = scoreRow('📦', 'JACKET GRADE', jacket, C3X, c3Y);
+  c3Y += 4;
+
+  // Kitty Pick
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 13px Arial, sans-serif';
+  ctx.fillText('🐱 KITTY PICK', C3X, c3Y);
+  ctx.fillStyle = '#f0f0f0';
+  ctx.font      = 'bold 20px Arial Black, Arial, sans-serif';
+  ctx.fillText(kitty.toUpperCase(), C3X, c3Y + 24);
+
+  // ── 4. FOOTER ──────────────────────────────────────────────
+  ctx.fillStyle = LIME;
+  roundRect(IX, FOOT_Y, IW, FOOT_H, 8);
+  ctx.fill();
+
+  // Left: Vinyl Therapy Series badge
+  ctx.strokeStyle = '#0a0a0a';
+  ctx.lineWidth   = 2;
+  roundRect(IX + 8, FOOT_Y + 8, 90, FOOT_H - 16, 6);
+  ctx.stroke();
+  ctx.fillStyle = '#0a0a0a';
+  ctx.font      = 'bold 11px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('VINYL', IX + 8 + 45, FOOT_Y + 26);
+  ctx.fillText('THERAPY', IX + 8 + 45, FOOT_Y + 40);
+  ctx.fillText('SERIES', IX + 8 + 45, FOOT_Y + 54);
+
+  // Center: tagline
+  ctx.fillStyle = '#0a0a0a';
+  ctx.font      = 'bold 18px Arial Black, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('RAW GROOVES.', IX + IW/2, FOOT_Y + 30);
+  ctx.fillText('REAL REVIEWS. ZERO FLUFF.', IX + IW/2, FOOT_Y + 52);
+
+  // Paw print emoji
+  ctx.font = '28px Arial';
+  ctx.fillText('🐾', IX + IW/2, FOOT_Y + FOOT_H - 10);
+
+  // Right: hashtags + domain
+  ctx.fillStyle = '#0a0a0a';
+  ctx.font      = 'bold 13px Arial, sans-serif';
+  ctx.textAlign = 'right';
+  const hashWords = hashtags.split(' ');
+  const h1 = hashWords.slice(0, 3).join(' ');
+  const h2 = hashWords.slice(3).join(' ');
+  ctx.fillText(h1, IX + IW - 12, FOOT_Y + 26);
+  if (h2) ctx.fillText(h2, IX + IW - 12, FOOT_Y + 42);
+  ctx.fillText('★ korndogrecords.com ★', IX + IW - 12, FOOT_Y + FOOT_H - 12);
+
+  // Show preview
+  document.getElementById('previewWrap').classList.add('visible');
+}
+
+// ── Download ──────────────────────────────────────────────────
+async function downloadCard() {
+  sessionNum += 1;
+  currentSessStr = String(sessionNum).padStart(3, '0');
+  localStorage.setItem('kd_therapy_session', sessionNum);
+
+  await renderCard();
+
+  const canvas  = document.getElementById('previewCanvas');
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.93);
+  const artist  = document.getElementById('f_artist').value || 'record';
+  const sessStr = currentSessStr;
+
+  const a = document.createElement('a');
+  a.href     = dataUrl;
+  a.download = `korndog-therapy-card-${sessStr}-${artist.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,30)}.jpg`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  const caption = `${document.getElementById('f_artist').value} — ${document.getElementById('f_album').value}\n\n${document.getElementById('f_joey').value}\n\n${window._hashtags || '#KorndogRecords #VinylTherapy'}\n\nkorndogrecords.com`;
+  if (navigator.clipboard) navigator.clipboard.writeText(caption).catch(() => {});
+
+  showToast('📥 Card saved! Caption copied.');
+
+  // Reset preview to next session number so subsequent cards are correct
+  currentSessStr = String(sessionNum + 1).padStart(3, '0');
+  await renderCard();
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
