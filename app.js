@@ -5,8 +5,6 @@
 // ═══════════════════════════════════════════════════════════
 
 // ── AI CALL ─────────────────────────────────────────────────
-// Sends { prompt, maxTokens, imageBase64?, imageMimeType? }
-// to the Netlify function. Returns plain text.
 async function generate(payload) {
   const res = await fetch('/.netlify/functions/generate', {
     method:  'POST',
@@ -26,21 +24,18 @@ async function generate(payload) {
 }
 
 // ── IMAGE HANDLING ────────────────────────────────────────────
-// Holds the currently selected photo as { base64, mimeType } or null
 let currentPhoto = null;
 
-// Compress + encode a File to base64 JPEG under ~3.5MB
 function compressImage(file) {
   return new Promise((resolve, reject) => {
-    const MAX_BYTES = 3.5 * 1024 * 1024; // 3.5 MB base64 budget
-    const MAX_DIM   = 1280;               // max width or height
+    const MAX_BYTES = 3.5 * 1024 * 1024;
+    const MAX_DIM   = 1280;
 
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
 
-      // Scale down if needed
       let { width, height } = img;
       if (width > MAX_DIM || height > MAX_DIM) {
         const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
@@ -53,14 +48,12 @@ function compressImage(file) {
       canvas.height = height;
       canvas.getContext('2d').drawImage(img, 0, 0, width, height);
 
-      // Try quality steps until under budget
       let quality = 0.85;
       let dataUrl;
       do {
         dataUrl  = canvas.toDataURL('image/jpeg', quality);
         quality -= 0.1;
       } while (dataUrl.length > MAX_BYTES * 1.37 && quality > 0.2);
-      // base64 is ~1.37× the raw byte count
 
       const base64 = dataUrl.split(',')[1];
       resolve({ base64, mimeType: 'image/jpeg' });
@@ -97,7 +90,6 @@ function handlePhotoSelect(input) {
       label.style.color = '';
     });
 
-  // Reset input so same file can be re-selected
   input.value = '';
 }
 
@@ -127,7 +119,7 @@ try {
   const savedPending = localStorage.getItem('kd_social_pending');
   if (savedQueue)   state.queue   = JSON.parse(savedQueue);
   if (savedPending) state.pending = JSON.parse(savedPending);
-} catch (e) { /* corrupted storage — start fresh */ }
+} catch (e) {}
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(tab) {
@@ -305,7 +297,6 @@ async function generatePosts() {
         type:      state.postType,
         platform:  state.platform,
         tone:      state.tone,
-        // Store photo data URL for display in swipe/queue (thumbnail only)
         photoDataUrl: currentPhoto
           ? `data:${currentPhoto.mimeType};base64,${currentPhoto.base64}`
           : null,
@@ -534,39 +525,194 @@ async function regenCard() {
   }
 }
 
-// ── POST TO META ─────────────────────────────────────────────
+// ── BRANDED GRAPHIC GENERATOR ─────────────────────────────────
+// Generates a KornDog-branded image combining the record photo
+// with the post text overlaid, then downloads it as a JPEG.
+// User taps Post Now → saves graphic to camera roll → posts to
+// Facebook as a photo post with caption pasted from clipboard.
+
+async function generateBrandedGraphic(post) {
+  const { bodyText, hashText } = splitPostText(post.text);
+
+  // Canvas size — square 1080×1080 (works for both FB and IG feed)
+  const W = 1080;
+  const H = 1080;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // ── 1. Background ──────────────────────────────────────────
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── 2. Record photo (if present) ──────────────────────────
+  if (post.photoDataUrl) {
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        // Cover-fit the photo into the top 65% of canvas
+        const targetH = H * 0.65;
+        const scale   = Math.max(W / img.width, targetH / img.height);
+        const sw      = img.width  * scale;
+        const sh      = img.height * scale;
+        const sx      = (W - sw) / 2;
+        const sy      = 0;
+        ctx.drawImage(img, sx, sy, sw, sh);
+        resolve();
+      };
+      img.onerror = resolve; // skip silently if broken
+      img.src = post.photoDataUrl;
+    });
+
+    // Dark gradient over photo — bottom fade into text area
+    const grad = ctx.createLinearGradient(0, H * 0.35, 0, H * 0.68);
+    grad.addColorStop(0, 'rgba(10,10,10,0)');
+    grad.addColorStop(1, 'rgba(10,10,10,1)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, H * 0.35, W, H * 0.35);
+  }
+
+  // ── 3. KornDog banner logo at top ─────────────────────────
+  await new Promise(resolve => {
+    const logo = new Image();
+    logo.crossOrigin = 'anonymous';
+    logo.onload = () => {
+      // Draw banner across top — height ~80px with padding
+      const logoH = 80;
+      const logoW = (logo.width / logo.height) * logoH;
+      const logoX = (W - logoW) / 2;
+      // Semi-transparent dark bar behind logo
+      ctx.fillStyle = 'rgba(10,10,10,0.75)';
+      ctx.fillRect(0, 0, W, logoH + 24);
+      ctx.drawImage(logo, logoX, 12, logoW, logoH);
+      resolve();
+    };
+    logo.onerror = resolve; // skip if CORS blocked
+    logo.src = 'https://korndogrecords.com/images/korndog-banner.png';
+  });
+
+  // ── 4. Zombie Kitty — bottom right corner ─────────────────
+  await new Promise(resolve => {
+    const kitty = new Image();
+    kitty.crossOrigin = 'anonymous';
+    kitty.onload = () => {
+      const kH = 140;
+      const kW = (kitty.width / kitty.height) * kH;
+      ctx.drawImage(kitty, W - kW - 20, H - kH - 20, kW, kH);
+      resolve();
+    };
+    kitty.onerror = resolve;
+    kitty.src = 'https://korndogrecords.com/images/zombie-kitty.png';
+  });
+
+  // ── 5. Text area background ────────────────────────────────
+  const textAreaTop = post.photoDataUrl ? H * 0.63 : 120;
+  ctx.fillStyle = 'rgba(10,10,10,0.0)'; // transparent — gradient covers it
+  ctx.fillRect(0, textAreaTop, W, H - textAreaTop);
+
+  // Lime green accent bar
+  ctx.fillStyle = '#7FD41A';
+  ctx.fillRect(48, textAreaTop + 8, 6, post.photoDataUrl ? 160 : 200);
+
+  // ── 6. Body text ───────────────────────────────────────────
+  ctx.fillStyle = '#f0f0f0';
+  ctx.font      = 'bold 32px Barlow, Arial, sans-serif';
+  ctx.textAlign = 'left';
+
+  const textX    = 72;
+  const maxWidth = W - textX - 60;
+  let   textY    = textAreaTop + 48;
+  const lineH    = 44;
+
+  // Word-wrap body text
+  const words = bodyText.split(' ');
+  let   line  = '';
+  const wrappedLines = [];
+
+  for (const word of words) {
+    const test = line ? line + ' ' + word : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      wrappedLines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) wrappedLines.push(line);
+
+  // Max lines that fit — leave room for hashtags + kitty
+  const maxLines = post.photoDataUrl ? 7 : 12;
+  const visibleLines = wrappedLines.slice(0, maxLines);
+  if (wrappedLines.length > maxLines) {
+    visibleLines[maxLines - 1] = visibleLines[maxLines - 1] + '…';
+  }
+
+  visibleLines.forEach(l => {
+    ctx.fillText(l, textX, textY);
+    textY += lineH;
+  });
+
+  // ── 7. Hashtags in lime green ──────────────────────────────
+  if (hashText) {
+    textY += 12;
+    ctx.fillStyle = '#7FD41A';
+    ctx.font      = 'bold 26px Barlow, Arial, sans-serif';
+
+    // Word-wrap hashtags too
+    const hashWords   = hashText.split(' ');
+    let   hashLine    = '';
+    const hashWrapped = [];
+    for (const w of hashWords) {
+      const t = hashLine ? hashLine + ' ' + w : w;
+      if (ctx.measureText(t).width > maxWidth && hashLine) {
+        hashWrapped.push(hashLine);
+        hashLine = w;
+      } else { hashLine = t; }
+    }
+    if (hashLine) hashWrapped.push(hashLine);
+
+    hashWrapped.slice(0, 2).forEach(l => {
+      ctx.fillText(l, textX, textY);
+      textY += 36;
+    });
+  }
+
+  // ── 8. korndogrecords.com watermark ───────────────────────
+  ctx.fillStyle = 'rgba(127,212,26,0.55)';
+  ctx.font      = '22px Barlow, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('korndogrecords.com', 48, H - 28);
+
+  return canvas;
+}
+
+// ── POST NOW → Download branded graphic + copy caption ────────
 async function postToMeta(post, idx, btn) {
-  if (btn) { btn.disabled = true; btn.textContent = '📤 Posting...'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⚙️ Building...'; }
 
   try {
-    const payload = {
-      message:  post.text,
-      platform: post.platform === 'both' ? 'both' : post.platform,
-    };
-    if (post.photoDataUrl) {
-      const [meta, base64] = post.photoDataUrl.split(',');
-      payload.imageBase64   = base64;
-      payload.imageMimeType = meta.replace('data:', '').replace(';base64', '');
-    }
+    showToast('🎨 Generating graphic...');
 
-    const res  = await fetch('/.netlify/functions/post-to-meta', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(payload),
-    });
-    const data = await res.json();
+    const canvas  = await generateBrandedGraphic(post);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
-    if (!res.ok || data.error) throw new Error(data.error || 'Post failed');
+    // Download the graphic
+    const a = document.createElement('a');
+    a.href     = dataUrl;
+    a.download = `korndog-post-${Date.now()}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
-    // Build success message
-    const parts = [];
-    if (data.facebook && !data.facebook.skipped) parts.push('Facebook ✓');
-    if (data.instagram && !data.instagram.skipped) parts.push('Instagram ✓');
-    if (data.instagram?.skipped) parts.push(`IG skipped: ${data.instagram.reason}`);
+    // Also copy the caption text to clipboard
+    await copyPostSilent(post.text);
 
-    showToast('🔥 Posted! ' + parts.join(' · '));
+    // Show instructions toast
+    showToast('📥 Graphic saved! Caption copied — open Facebook & post as photo.');
 
-    // Remove from queue after successful post
+    // Remove from queue
     state.queue.splice(idx, 1);
     saveQueue();
     updateBadge();
@@ -574,10 +720,28 @@ async function postToMeta(post, idx, btn) {
 
   } catch (err) {
     console.error('[postToMeta]', err);
-    showToast('Post failed — check logs or try again.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Post Now'; }
+    showToast('Something went wrong building the graphic.');
+    if (btn) { btn.disabled = false; btn.textContent = '📲 Post Now'; }
   }
 }
+
+// Silent clipboard copy (no toast) — used alongside graphic download
+async function copyPostSilent(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try { await navigator.clipboard.writeText(text); return; } catch (e) {}
+  }
+  // Fallback
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (e) {}
+  document.body.removeChild(ta);
+}
+
+// ── QUEUE ─────────────────────────────────────────────────────
 function renderQueue() {
   const empty = document.getElementById('queueEmpty');
   const list  = document.getElementById('queueList');
@@ -611,12 +775,11 @@ function renderQueue() {
       </div>
       <div class="queue-item-actions">
         <button class="qi-btn qi-copy" data-action="copy">📋 Copy</button>
-        <button class="qi-btn qi-post" data-action="post">Post Now</button>
+        <button class="qi-btn qi-post" data-action="post">📲 Post Now</button>
         <button class="qi-btn qi-delete" data-action="delete">🗑</button>
       </div>
     `;
 
-    // Attach events via JS — avoids all quote/JSON escaping issues in onclick
     item.querySelector('[data-action="copy"]').addEventListener('click', () => copyPost(post.text));
     item.querySelector('[data-action="post"]').addEventListener('click', (e) => postToMeta(post, i, e.currentTarget));
     item.querySelector('[data-action="delete"]').addEventListener('click', () => deleteQueued(i));
@@ -665,16 +828,14 @@ function saveEdit() {
 
 // ── UTILS ─────────────────────────────────────────────────────
 async function copyPost(text) {
-  // Try modern clipboard API first
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
       await navigator.clipboard.writeText(text);
       showToast('📋 Copied!');
       return;
-    } catch (e) { /* fall through to manual fallback */ }
+    } catch (e) {}
   }
 
-  // Android/mobile fallback — show a selectable textarea sheet
   const overlay = document.createElement('div');
   overlay.style.cssText = `
     position:fixed;inset:0;background:rgba(0,0,0,0.85);
@@ -714,7 +875,6 @@ async function copyPost(text) {
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
 
-  // Auto-select the text
   setTimeout(() => {
     const ta = document.getElementById('copyFallbackTA');
     if (ta) { ta.focus(); ta.select(); }
@@ -751,23 +911,17 @@ function escHtml(str) {
 }
 
 // ── PREFILL FROM DISCOVERY ────────────────────────────────────
-// Called by the Discovery tab to inject artist/release details
-// directly into the Generate form and set the post type.
 function prefillGenerate(details, postType) {
-  // Set details textarea
   const ta = document.getElementById('detailsInput');
   if (ta) ta.value = details;
 
-  // Set post type button
   if (postType) {
     const btn = document.querySelector(`.post-type-btn[data-type="${postType}"]`);
     if (btn) selectPostType(btn);
   }
 
-  // Switch to generate tab
   switchTab('generate');
 
-  // Scroll details into view
   setTimeout(() => {
     const el = document.getElementById('detailsInput');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
