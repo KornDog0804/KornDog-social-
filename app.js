@@ -535,8 +535,7 @@ async function regenCard() {
 }
 
 // ── POST TO META ─────────────────────────────────────────────
-async function postToMeta(post, idx) {
-  const btn = document.querySelector(`#queueList .queue-item:nth-child(${idx + 1}) .qi-post`);
+async function postToMeta(post, idx, btn) {
   if (btn) { btn.disabled = true; btn.textContent = '📤 Posting...'; }
 
   try {
@@ -599,6 +598,7 @@ function renderQueue() {
 
     const item = document.createElement('div');
     item.className = 'queue-item';
+    item.dataset.idx = i;
     item.innerHTML = `
       <div class="queue-item-header">
         <div class="queue-item-meta">${escHtml(typeLabel)}</div>
@@ -610,11 +610,16 @@ function renderQueue() {
         ${hashText ? `<div class="queue-item-tags">${escHtml(hashText)}</div>` : ''}
       </div>
       <div class="queue-item-actions">
-        <button class="qi-btn qi-copy" onclick="copyPost(${JSON.stringify(post.text)})">📋 Copy</button>
-        <button class="qi-btn qi-post" onclick="postToMeta(${JSON.stringify(post)}, ${i})">Post Now</button>
-        <button class="qi-btn qi-delete" onclick="deleteQueued(${i})">🗑</button>
+        <button class="qi-btn qi-copy" data-action="copy">📋 Copy</button>
+        <button class="qi-btn qi-post" data-action="post">Post Now</button>
+        <button class="qi-btn qi-delete" data-action="delete">🗑</button>
       </div>
     `;
+
+    // Attach events via JS — avoids all quote/JSON escaping issues in onclick
+    item.querySelector('[data-action="copy"]').addEventListener('click', () => copyPost(post.text));
+    item.querySelector('[data-action="post"]').addEventListener('click', (e) => postToMeta(post, i, e.currentTarget));
+    item.querySelector('[data-action="delete"]').addEventListener('click', () => deleteQueued(i));
     list.appendChild(item);
   });
 }
