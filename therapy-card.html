@@ -729,13 +729,27 @@ async function renderCard() {
   if (photoImg) {
     const pX = IX + CARD_PAD, pY = PHOTO_Y + CARD_PAD;
     const pW = IW - CARD_PAD*2, pH = PHOTO_H - CARD_PAD*2;
-    const scale = Math.max(pW/photoImg.width, pH/photoImg.height);
-    const sw = photoImg.width*scale, sh = photoImg.height*scale;
+
+    // Contain: show full album cover, no cropping
+    const scale = Math.min(pW / photoImg.width, pH / photoImg.height);
+    const sw    = photoImg.width  * scale;
+    const sh    = photoImg.height * scale;
+    const sx    = pX + (pW - sw) / 2;
+    const sy    = pY + (pH - sh) / 2;
+
+    // Clip to photo zone, dark fill for any letterbox areas, then draw image
     ctx.save();
     roundRect(pX, pY, pW, pH, 6);
     ctx.clip();
-    ctx.drawImage(photoImg, pX+(pW-sw)/2, pY+(pH-sh)/2, sw, sh);
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(pX, pY, pW, pH);
+    ctx.drawImage(photoImg, sx, sy, sw, sh);
     ctx.restore();
+
+    // Subtle border around just the album art
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth   = 2;
+    ctx.strokeRect(sx - 1, sy - 1, sw + 2, sh + 2);
   } else {
     ctx.fillStyle = '#1a1a1a';
     roundRect(IX+CARD_PAD, PHOTO_Y+CARD_PAD, IW-CARD_PAD*2, PHOTO_H-CARD_PAD*2, 6);
