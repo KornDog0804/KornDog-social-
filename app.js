@@ -531,185 +531,333 @@ async function regenCard() {
 // User taps Post Now → saves graphic to camera roll → posts to
 // Facebook as a photo post with caption pasted from clipboard.
 
+// ── SESSION COUNTER ───────────────────────────────────────────
+function getNextSessionNumber() {
+  let n = parseInt(localStorage.getItem('kd_session_num') || '0', 10);
+  n += 1;
+  localStorage.setItem('kd_session_num', n);
+  return String(n).padStart(3, '0');
+}
+
+// ── BRANDED GRAPHIC GENERATOR (v3 — full layout) ─────────────
+// Layout matches the KornDog record review card style:
+//
+//  ┌──────────────────────────────────────────────────────┐
+//  │ [LOGO]  KORNDOG RECORDS          VINYL THERAPY #071  │  TOP BAR
+//  │         RAW GROOVES. REAL REVIEWS. ZERO FLUFF.       │
+//  ├──────────────────────────────────────────────────────┤
+//  │                                                      │
+//  │                  RECORD PHOTO                        │  PHOTO
+//  │                                                      │
+//  ├──────────────────────────────────────────────────────┤
+//  │ 🎵 SOUNDS LIKE: │ 💬 JOEY SAYS:  │ ⭐ THERAPY SCORE │  3-COL
+//  │  [auto-vibes]   │  [post text]   │    9.5/10        │
+//  │                 │                │  🐱 KITTY PICK   │
+//  ├──────────────────────────────────────────────────────┤
+//  │ #hashtags                [kitty]   [actions]         │  FOOTER
+//  │ korndogrecords.com                                   │
+//  └──────────────────────────────────────────────────────┘
+
 async function generateBrandedGraphic(post) {
   const { bodyText, hashText } = splitPostText(post.text);
+  const sessionNum = getNextSessionNumber();
 
-  // 1080×1350 = 4:5 ratio — ideal for Facebook and Instagram feed
-  const W     = 1080;
-  const H     = 1350;
-  const LIME  = '#7FD41A';
-  const DARK  = '#0a0a0a';
-  const PANEL = '#111111';
+  const W    = 1080;
+  const H    = 1350;
+  const LIME = '#7FD41A';
+  const DARK = '#0a0a0a';
+  const MID  = '#141414';
+  const PANEL= '#1a1a1a';
 
   const canvas = document.createElement('canvas');
   canvas.width  = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ── Background ─────────────────────────────────────────────
-  ctx.fillStyle = DARK;
-  ctx.fillRect(0, 0, W, H);
-
-  // ── Zone layout ────────────────────────────────────────────
-  const BANNER_H = 100;
-  const PHOTO_H  = post.photoDataUrl ? 560 : 0;
-  const DIVIDER  = 6;
-  const TEXT_TOP = BANNER_H + PHOTO_H + DIVIDER;
-  const TEXT_H   = H - TEXT_TOP;
-
-  // ── 1. KornDog banner bar at top ──────────────────────────
-  await new Promise(resolve => {
-    const logo = new Image();
-    logo.crossOrigin = 'anonymous';
-    logo.onload = () => {
-      ctx.fillStyle = '#0d0d0d';
-      ctx.fillRect(0, 0, W, BANNER_H);
-      // Lime bottom border
-      ctx.fillStyle = LIME;
-      ctx.fillRect(0, BANNER_H - 4, W, 4);
-      // Logo centered vertically in banner
-      const logoH = 66;
-      const logoW = (logo.width / logo.height) * logoH;
-      ctx.drawImage(logo, (W - logoW) / 2, (BANNER_H - logoH) / 2, logoW, logoH);
-      resolve();
-    };
-    logo.onerror = () => {
-      // Text fallback if image fails
-      ctx.fillStyle = '#0d0d0d';
-      ctx.fillRect(0, 0, W, BANNER_H);
-      ctx.fillStyle = LIME;
-      ctx.fillRect(0, BANNER_H - 4, W, 4);
-      ctx.fillStyle = LIME;
-      ctx.font = 'bold 50px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('KORNDOG RECORDS', W / 2, 64);
-      resolve();
-    };
-    logo.src = 'https://korndogrecords.com/images/korndog-banner.png';
-  });
-
-  // ── 2. Record photo — clean zone, no text overlap ─────────
-  if (post.photoDataUrl) {
-    await new Promise(resolve => {
+  // helper: load image with crossOrigin, resolve even on error
+  function loadImg(src) {
+    return new Promise(resolve => {
       const img = new Image();
-      img.onload = () => {
-        const scale = Math.max(W / img.width, PHOTO_H / img.height);
-        const sw    = img.width  * scale;
-        const sh    = img.height * scale;
-        const sx    = (W - sw) / 2;
-        const sy    = BANNER_H + (PHOTO_H - sh) / 2;
-        // Clip strictly to photo zone
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(0, BANNER_H, W, PHOTO_H);
-        ctx.clip();
-        ctx.drawImage(img, sx, sy, sw, sh);
-        ctx.restore();
-        resolve();
-      };
-      img.onerror = resolve;
-      img.src = post.photoDataUrl;
+      img.crossOrigin = 'anonymous';
+      img.onload  = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = src;
     });
-
-    // Lime divider strip between photo and text panel
-    ctx.fillStyle = LIME;
-    ctx.fillRect(0, BANNER_H + PHOTO_H, W, DIVIDER);
   }
 
-  // ── 3. Text panel — solid dark background ─────────────────
-  ctx.fillStyle = PANEL;
-  ctx.fillRect(0, TEXT_TOP, W, TEXT_H);
-
-  // Lime left accent bar
-  ctx.fillStyle = LIME;
-  ctx.fillRect(0, TEXT_TOP, 8, TEXT_H);
-
-  // ── 4. Body text ───────────────────────────────────────────
-  const PAD_L = 48;
-  const PAD_R = 48;
-  const maxTW = W - PAD_L - PAD_R;
-  let   textY = TEXT_TOP + 52;
-
-  ctx.fillStyle = '#f0f0f0';
-  ctx.textAlign = 'left';
-
-  // Auto font size based on length
-  const charCount  = bodyText.length;
-  const fontSize   = charCount < 180 ? 36 : charCount < 320 ? 30 : 26;
-  const lineHeight = fontSize * 1.5;
-  ctx.font = `${fontSize}px Arial, sans-serif`;
-
-  function wrapText(txt, maxW) {
+  // helper: word-wrap
+  function wrapText(txt, maxW, font) {
+    if (font) ctx.font = font;
     const words = txt.split(' ');
     const lines = [];
-    let   cur   = '';
+    let cur = '';
     for (const w of words) {
       const test = cur ? cur + ' ' + w : w;
       if (ctx.measureText(test).width > maxW && cur) {
-        lines.push(cur);
-        cur = w;
+        lines.push(cur); cur = w;
       } else { cur = test; }
     }
     if (cur) lines.push(cur);
     return lines;
   }
 
-  // Split on newlines, wrap each paragraph
-  const paragraphs = bodyText.split('\n').filter(p => p.trim());
-  const allLines   = [];
-  for (const para of paragraphs) {
-    allLines.push(...wrapText(para, maxTW));
-    allLines.push(''); // paragraph gap
+  // helper: rounded rect
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
   }
 
-  // How many lines fit above hashtags (leave 130px at bottom)
-  const availH   = TEXT_H - 130;
-  const maxLines = Math.floor(availH / lineHeight);
-  const visible  = allLines.slice(0, maxLines);
-  if (allLines.length > maxLines && visible.length > 0) {
-    const last = visible[visible.length - 1];
-    visible[visible.length - 1] = (last || '') + (last ? '…' : '');
+  // ── Load all images in parallel ────────────────────────────
+  const [logoImg, kittyImg, photoImg] = await Promise.all([
+    loadImg('https://korndogrecords.com/images/Screenshot_20250831-144625.png'),
+    loadImg('https://korndogrecords.com/images/3817.png'),
+    post.photoDataUrl ? new Promise(resolve => {
+      const img = new Image();
+      img.onload  = () => resolve(img);
+      img.onerror = () => resolve(null);
+      img.src = post.photoDataUrl;
+    }) : Promise.resolve(null),
+  ]);
+
+  // ── Zone heights ───────────────────────────────────────────
+  const TOP_H   = 140;   // top bar with logo + title
+  const PHOTO_H = photoImg ? 500 : 0;
+  const INFO_H  = 340;   // 3-column info panel
+  const FOOT_H  = H - TOP_H - PHOTO_H - INFO_H; // remainder for footer
+
+  // ── 1. Full background ─────────────────────────────────────
+  ctx.fillStyle = DARK;
+  ctx.fillRect(0, 0, W, H);
+
+  // ── 2. TOP BAR ─────────────────────────────────────────────
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, TOP_H);
+
+  // Lime bottom border on top bar
+  ctx.fillStyle = LIME;
+  ctx.fillRect(0, TOP_H - 4, W, 4);
+
+  // Circular KornDog logo — left side
+  if (logoImg) {
+    const lSize = 110;
+    const lX = 20, lY = (TOP_H - lSize) / 2;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(logoImg, lX, lY, lSize, lSize);
+    ctx.restore();
   }
 
-  for (const line of visible) {
-    if (line === '') {
-      textY += lineHeight * 0.35;
-    } else {
-      ctx.fillText(line, PAD_L, textY);
-      textY += lineHeight;
-    }
+  // KORNDOG RECORDS text
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 52px Arial Black, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('KORNDOG', 148, 68);
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 52px Arial Black, Arial, sans-serif';
+  ctx.fillText('RECORDS', 148, 122);
+
+  // Tagline
+  ctx.fillStyle = '#888888';
+  ctx.font      = '20px Arial, sans-serif';
+  ctx.fillText('RAW GROOVES. REAL REVIEWS. ZERO FLUFF.', 148, 132);
+
+  // VINYL THERAPY badge — right side
+  const badgeX = W - 180;
+  const badgeY = 12;
+  const badgeW = 168;
+  const badgeH = TOP_H - 24;
+  ctx.strokeStyle = LIME;
+  ctx.lineWidth   = 3;
+  roundRect(badgeX, badgeY, badgeW, badgeH, 8);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(127,212,26,0.08)';
+  roundRect(badgeX, badgeY, badgeW, badgeH, 8);
+  ctx.fill();
+
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 18px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('VINYL', badgeX + badgeW/2, badgeY + 30);
+  ctx.fillText('THERAPY', badgeX + badgeW/2, badgeY + 52);
+  ctx.fillText('SESSION', badgeX + badgeW/2, badgeY + 72);
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 42px Arial Black, Arial, sans-serif';
+  ctx.fillText(`#${sessionNum}`, badgeX + badgeW/2, badgeY + 118);
+
+  // ── 3. RECORD PHOTO ────────────────────────────────────────
+  if (photoImg) {
+    const pY = TOP_H;
+    const scale = Math.max(W / photoImg.width, PHOTO_H / photoImg.height);
+    const sw = photoImg.width  * scale;
+    const sh = photoImg.height * scale;
+    const sx = (W - sw) / 2;
+    const sy = pY + (PHOTO_H - sh) / 2;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, pY, W, PHOTO_H);
+    ctx.clip();
+    ctx.drawImage(photoImg, sx, sy, sw, sh);
+    ctx.restore();
+
+    // Subtle vignette at bottom of photo
+    const vig = ctx.createLinearGradient(0, pY + PHOTO_H * 0.7, 0, pY + PHOTO_H);
+    vig.addColorStop(0, 'rgba(10,10,10,0)');
+    vig.addColorStop(1, 'rgba(10,10,10,0.6)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, pY, W, PHOTO_H);
   }
 
-  // ── 5. Hashtags in lime — anchored to bottom ──────────────
+  // Lime divider
+  ctx.fillStyle = LIME;
+  ctx.fillRect(0, TOP_H + PHOTO_H, W, 5);
+
+  // ── 4. 3-COLUMN INFO PANEL ─────────────────────────────────
+  const infoY  = TOP_H + PHOTO_H + 5;
+  const colW   = W / 3;
+  const PAD    = 24;
+
+  ctx.fillStyle = PANEL;
+  ctx.fillRect(0, infoY, W, INFO_H);
+
+  // Column dividers
+  ctx.strokeStyle = '#2a2a2a';
+  ctx.lineWidth   = 2;
+  ctx.beginPath();
+  ctx.moveTo(colW, infoY + 20);
+  ctx.lineTo(colW, infoY + INFO_H - 20);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(colW * 2, infoY + 20);
+  ctx.lineTo(colW * 2, infoY + INFO_H - 20);
+  ctx.stroke();
+
+  // ── COL 1: SOUNDS LIKE ─────────────────────────────────────
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 20px Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('🎵 SOUNDS LIKE:', PAD, infoY + 40);
+
+  // Auto-generate a vibe description from post type/tone
+  const vibeMap = {
+    raw:         ['Unfiltered.', 'Zero pretense.', 'Raw energy.'],
+    hype:        ['Pure hype.', 'Turn it up.', 'Full send.'],
+    nostalgic:   ['Timeless.', 'Feels like home.', 'Classic vibes.'],
+    funny:       ['Laugh track.', 'Self-aware.', 'Good times.'],
+    educational: ['Deep cut.', 'For the heads.', 'Study up.'],
+  };
+  const vibes = vibeMap[post.tone] || ['Vinyl certified.', 'Crate gold.', 'Press play.'];
+
+  ctx.fillStyle = '#cccccc';
+  ctx.font      = '24px Arial, sans-serif';
+  vibes.forEach((v, i) => ctx.fillText(v, PAD, infoY + 80 + i * 36));
+
+  // ── COL 2: JOEY SAYS ───────────────────────────────────────
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 20px Arial, sans-serif';
+  ctx.fillText('💬 JOEY SAYS:', colW + PAD, infoY + 40);
+
+  // Use first ~120 chars of body text as the pull quote
+  const pullQuote = bodyText.length > 120 ? bodyText.slice(0, 117) + '…' : bodyText;
+  ctx.fillStyle = '#cccccc';
+  const joeyLines = wrapText(pullQuote, colW - PAD * 2, '22px Arial, sans-serif');
+  joeyLines.slice(0, 7).forEach((l, i) => {
+    ctx.fillText(l, colW + PAD, infoY + 80 + i * 32);
+  });
+
+  // ── COL 3: THERAPY SCORE ───────────────────────────────────
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 20px Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⭐ THERAPY SCORE:', colW * 2 + colW / 2, infoY + 40);
+
+  // Score — always 9.5 (it's KornDog Approved, everything is fire)
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 72px Arial Black, Arial, sans-serif';
+  ctx.fillText('9.5', colW * 2 + colW / 2, infoY + 130);
+
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 28px Arial, sans-serif';
+  ctx.fillText('/10', colW * 2 + colW / 2 + 36, infoY + 130);
+
+  // Lime divider under score
+  ctx.fillStyle = LIME;
+  ctx.fillRect(colW * 2 + PAD, infoY + 148, colW - PAD * 2, 3);
+
+  // Kitty Pick badge
+  ctx.fillStyle = LIME;
+  ctx.font      = 'bold 20px Arial, sans-serif';
+  ctx.fillText('🐱 KITTY PICK', colW * 2 + colW / 2, infoY + 190);
+  ctx.fillStyle = '#aaaaaa';
+  ctx.font      = '18px Arial, sans-serif';
+  ctx.fillText('CRATE GOLD. ALWAYS.', colW * 2 + colW / 2, infoY + 218);
+
+  // ── 5. FOOTER ──────────────────────────────────────────────
+  const footY = infoY + INFO_H;
+  ctx.fillStyle = MID;
+  ctx.fillRect(0, footY, W, FOOT_H);
+
+  // Lime top border on footer
+  ctx.fillStyle = LIME;
+  ctx.fillRect(0, footY, W, 4);
+
+  // Hashtags — left column
   if (hashText) {
     ctx.fillStyle = LIME;
-    ctx.font      = `bold 26px Arial, sans-serif`;
-    const hashLines = wrapText(hashText, maxTW - 130);
-    const hashStartY = H - 90;
-    hashLines.slice(0, 2).forEach((hl, i) => {
-      ctx.fillText(hl, PAD_L, hashStartY + i * 34);
+    ctx.font      = 'bold 24px Arial, sans-serif';
+    ctx.textAlign = 'left';
+    const hashLines = wrapText(hashText, 340, 'bold 24px Arial, sans-serif');
+    hashLines.slice(0, 3).forEach((hl, i) => {
+      ctx.fillText(hl, PAD, footY + 44 + i * 34);
     });
   }
 
-  // ── 6. Zombie Kitty — bottom right ────────────────────────
-  await new Promise(resolve => {
-    const kitty = new Image();
-    kitty.crossOrigin = 'anonymous';
-    kitty.onload = () => {
-      const kH = 105;
-      const kW = (kitty.width / kitty.height) * kH;
-      ctx.drawImage(kitty, W - kW - 20, H - kH - 20, kW, kH);
-      resolve();
-    };
-    kitty.onerror = resolve;
-    kitty.src = 'https://korndogrecords.com/images/zombie-kitty.png';
-  });
-
-  // ── 7. korndogrecords.com watermark ───────────────────────
-  ctx.fillStyle = 'rgba(127,212,26,0.4)';
+  // korndogrecords.com — bottom left
+  ctx.fillStyle = 'rgba(127,212,26,0.55)';
   ctx.font      = '20px Arial, sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('korndogrecords.com', PAD_L, H - 18);
+  ctx.fillText('🌐 korndogrecords.com', PAD, footY + FOOT_H - 18);
+
+  // Zombie Kitty — center of footer
+  if (kittyImg) {
+    const kH = FOOT_H - 20;
+    const kW = (kittyImg.width / kittyImg.height) * kH;
+    ctx.drawImage(kittyImg, (W - kW) / 2, footY + 10, kW, kH - 10);
+  }
+
+  // Action buttons — right column
+  const actions = ['DROP YOUR PICK\nIN THE COMMENTS', 'SAVE THIS POST\nFOR LATER', 'SHARE WITH A\nFELLOW DIGGER'];
+  const icons   = ['💬', '🔖', '📤'];
+  const actX    = W - 290;
+
+  ctx.textAlign = 'left';
+  actions.forEach((action, i) => {
+    const ay = footY + 28 + i * (FOOT_H / 3 - 4);
+    ctx.fillStyle = LIME;
+    ctx.font      = '26px Arial, sans-serif';
+    ctx.fillText(icons[i], actX, ay + 4);
+
+    ctx.fillStyle = '#cccccc';
+    ctx.font      = 'bold 16px Arial, sans-serif';
+    action.split('\n').forEach((line, li) => {
+      ctx.fillText(line, actX + 36, ay + li * 20);
+    });
+  });
+
+  // Bottom lime strip
+  ctx.fillStyle = LIME;
+  ctx.fillRect(0, H - 6, W, 6);
 
   return canvas;
 }
