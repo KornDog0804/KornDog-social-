@@ -4,12 +4,12 @@
 // Facebook Page and/or Instagram Business Account.
 //
 // Required Netlify Environment Variables:
-//   META_PAGE_ACCESS_TOKEN  — Page Access Token from Graph API Explorer
-//   META_PAGE_ID            — Facebook Page ID (e.g. 764443310089009)
+//   META_PAGE_ACCESS_TOKEN — Page Access Token from Graph API Explorer
+//   META_PAGE_ID           — Facebook Page ID (e.g. 764443310089009)
 //
 // Optional:
-//   META_IG_USER_ID         — Instagram Business Account ID
-//                             (if not set, Instagram posting is skipped)
+//   META_IG_USER_ID — Instagram Business Account ID
+//                     (if not set, Instagram posting is skipped)
 //
 // Request body:
 //   { message, platform, imageBase64?, imageMimeType? }
@@ -20,10 +20,10 @@
 //   { error: "..." } on failure
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  '*',
+  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
-  'Content-Type':                 'application/json',
+  'Content-Type': 'application/json',
 };
 
 const GRAPH = 'https://graph.facebook.com/v19.0';
@@ -33,6 +33,7 @@ exports.handler = async function (event) {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 204, headers: CORS_HEADERS, body: '' };
   }
+
   if (event.httpMethod !== 'POST') {
     return fail(405, 'Method not allowed');
   }
@@ -48,6 +49,7 @@ exports.handler = async function (event) {
   if (!message || typeof message !== 'string' || !message.trim()) {
     return fail(400, 'message is required');
   }
+
   if (!['facebook', 'instagram', 'both'].includes(platform)) {
     return fail(400, 'platform must be facebook, instagram, or both');
   }
@@ -59,14 +61,16 @@ exports.handler = async function (event) {
   if (!pageToken) return fail(500, 'META_PAGE_ACCESS_TOKEN not set');
   if (!pageId)    return fail(500, 'META_PAGE_ID not set');
 
+  // ── Debug: log token prefix and page ID so we can confirm env vars are loaded
+  console.log('[post-to-meta] pageId:', pageId);
+  console.log('[post-to-meta] token prefix:', pageToken.substring(0, 20) + '...');
+
   const hasImage = !!(imageBase64 && imageMimeType);
-  const result   = {};
+  const result = {};
 
   try {
     // ── FACEBOOK ──────────────────────────────────────────────
     if (platform === 'facebook' || platform === 'both') {
-      // Post text only — photo upload via Graph API requires additional
-      // app permissions that may not be active yet
       const post = await postTextToFacebook(pageId, pageToken, message);
       result.facebook = { id: post.id };
     }
@@ -76,12 +80,10 @@ exports.handler = async function (event) {
       if (!igUserId) {
         result.instagram = { skipped: true, reason: 'META_IG_USER_ID not configured' };
       } else if (!hasImage) {
-        // Instagram requires an image for feed posts
         result.instagram = { skipped: true, reason: 'Instagram feed posts require an image' };
       } else {
-        // Instagram needs a publicly accessible image URL — upload to FB first
         const fbImageUrl = await getPublicImageUrl(pageId, pageToken, imageBase64, imageMimeType);
-        const igPost     = await postToInstagram(igUserId, pageToken, message, fbImageUrl);
+        const igPost = await postToInstagram(igUserId, pageToken, message, fbImageUrl);
         result.instagram = { id: igPost.id };
       }
     }
@@ -89,8 +91,9 @@ exports.handler = async function (event) {
     return ok({ success: true, ...result });
 
   } catch (err) {
-    console.error('[post-to-meta]', err.message);
-    return fail(500, 'Posting failed. Check server logs.');
+    // ── Surface the FULL Meta error message back to the client
+    console.error('[post-to-meta] ERROR:', err.message);
+    return fail(500, err.message);
   }
 };
 
@@ -98,7 +101,7 @@ exports.handler = async function (event) {
 
 async function postTextToFacebook(pageId, token, message) {
   const res = await fetchWithTimeout(`${GRAPH}/${pageId}/feed`, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, access_token: token }),
   });
@@ -106,10 +109,8 @@ async function postTextToFacebook(pageId, token, message) {
 }
 
 async function uploadPhotoToFacebook(pageId, token, base64, mimeType) {
-  // Facebook requires multipart/form-data — base64 in JSON body is rejected
   const buffer   = Buffer.from(base64, 'base64');
   const boundary = 'KornDogBound' + Date.now();
-
   const body = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="source"; filename="photo.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`),
     buffer,
@@ -119,7 +120,7 @@ async function uploadPhotoToFacebook(pageId, token, base64, mimeType) {
   ]);
 
   const res = await fetchWithTimeout(`${GRAPH}/${pageId}/photos`, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     body,
   });
@@ -129,11 +130,11 @@ async function uploadPhotoToFacebook(pageId, token, base64, mimeType) {
 
 async function postToFacebookWithPhoto(pageId, token, message, photoId) {
   const res = await fetchWithTimeout(`${GRAPH}/${pageId}/feed`, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message,
-      access_token:   token,
+      access_token: token,
       attached_media: [{ media_fbid: photoId }],
     }),
   });
@@ -143,7 +144,6 @@ async function postToFacebookWithPhoto(pageId, token, message, photoId) {
 async function getPublicImageUrl(pageId, token, base64, mimeType) {
   const buffer   = Buffer.from(base64, 'base64');
   const boundary = 'KornDogBound' + Date.now();
-
   const body = Buffer.concat([
     Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="source"; filename="photo.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`),
     buffer,
@@ -153,7 +153,7 @@ async function getPublicImageUrl(pageId, token, base64, mimeType) {
   ]);
 
   const res = await fetchWithTimeout(`${GRAPH}/${pageId}/photos`, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
     body,
   });
@@ -172,10 +172,10 @@ async function getPublicImageUrl(pageId, token, base64, mimeType) {
 async function postToInstagram(igUserId, token, caption, imageUrl) {
   // Step 1: Create media container
   const containerRes = await fetchWithTimeout(`${GRAPH}/${igUserId}/media`, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      image_url:    imageUrl,
+      image_url: imageUrl,
       caption,
       access_token: token,
     }),
@@ -184,10 +184,10 @@ async function postToInstagram(igUserId, token, caption, imageUrl) {
 
   // Step 2: Publish the container
   const publishRes = await fetchWithTimeout(`${GRAPH}/${igUserId}/media_publish`, {
-    method:  'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      creation_id:  container.id,
+      creation_id: container.id,
       access_token: token,
     }),
   });
@@ -215,11 +215,13 @@ async function parseJSON(res, label) {
     throw new Error(`${label} returned non-JSON (${res.status})`);
   }
   if (!res.ok) {
-    const detail = data?.error?.message || JSON.stringify(data);
-    throw new Error(`${label} error ${res.status}: ${detail}`);
+    // Return the FULL Meta error so we can diagnose it
+    const detail = data?.error?.message || data?.error?.type || JSON.stringify(data);
+    const code   = data?.error?.code || res.status;
+    throw new Error(`[Meta ${code}] ${label}: ${detail}`);
   }
   return data;
 }
 
-function ok(body)         { return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(body) }; }
-function fail(code, msg)  { return { statusCode: code, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) }; }
+function ok(body)       { return { statusCode: 200, headers: CORS_HEADERS, body: JSON.stringify(body) }; }
+function fail(code, msg) { return { statusCode: code, headers: CORS_HEADERS, body: JSON.stringify({ error: msg }) }; }
