@@ -534,71 +534,169 @@ async function regenCard() {
 async function generateBrandedGraphic(post) {
   const { bodyText, hashText } = splitPostText(post.text);
 
-  // Canvas size — square 1080×1080 (works for both FB and IG feed)
-  const W = 1080;
-  const H = 1080;
+  // 1080×1350 = 4:5 ratio — ideal for Facebook and Instagram feed
+  const W     = 1080;
+  const H     = 1350;
+  const LIME  = '#7FD41A';
+  const DARK  = '#0a0a0a';
+  const PANEL = '#111111';
 
   const canvas = document.createElement('canvas');
   canvas.width  = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // ── 1. Background ──────────────────────────────────────────
-  ctx.fillStyle = '#0a0a0a';
+  // ── Background ─────────────────────────────────────────────
+  ctx.fillStyle = DARK;
   ctx.fillRect(0, 0, W, H);
 
-  // ── 2. Record photo (if present) ──────────────────────────
-  if (post.photoDataUrl) {
-    await new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => {
-        // Cover-fit the photo into the top 65% of canvas
-        const targetH = H * 0.65;
-        const scale   = Math.max(W / img.width, targetH / img.height);
-        const sw      = img.width  * scale;
-        const sh      = img.height * scale;
-        const sx      = (W - sw) / 2;
-        const sy      = 0;
-        ctx.drawImage(img, sx, sy, sw, sh);
-        resolve();
-      };
-      img.onerror = resolve; // skip silently if broken
-      img.src = post.photoDataUrl;
-    });
+  // ── Zone layout ────────────────────────────────────────────
+  const BANNER_H = 100;
+  const PHOTO_H  = post.photoDataUrl ? 560 : 0;
+  const DIVIDER  = 6;
+  const TEXT_TOP = BANNER_H + PHOTO_H + DIVIDER;
+  const TEXT_H   = H - TEXT_TOP;
 
-    // Dark gradient over photo — bottom fade into text area
-    const grad = ctx.createLinearGradient(0, H * 0.35, 0, H * 0.68);
-    grad.addColorStop(0, 'rgba(10,10,10,0)');
-    grad.addColorStop(1, 'rgba(10,10,10,1)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, H * 0.35, W, H * 0.35);
-  }
-
-  // ── 3. KornDog banner logo at top ─────────────────────────
+  // ── 1. KornDog banner bar at top ──────────────────────────
   await new Promise(resolve => {
     const logo = new Image();
     logo.crossOrigin = 'anonymous';
     logo.onload = () => {
-      // Draw banner across top — height ~80px with padding
-      const logoH = 80;
+      ctx.fillStyle = '#0d0d0d';
+      ctx.fillRect(0, 0, W, BANNER_H);
+      // Lime bottom border
+      ctx.fillStyle = LIME;
+      ctx.fillRect(0, BANNER_H - 4, W, 4);
+      // Logo centered vertically in banner
+      const logoH = 66;
       const logoW = (logo.width / logo.height) * logoH;
-      const logoX = (W - logoW) / 2;
-      // Semi-transparent dark bar behind logo
-      ctx.fillStyle = 'rgba(10,10,10,0.75)';
-      ctx.fillRect(0, 0, W, logoH + 24);
-      ctx.drawImage(logo, logoX, 12, logoW, logoH);
+      ctx.drawImage(logo, (W - logoW) / 2, (BANNER_H - logoH) / 2, logoW, logoH);
       resolve();
     };
-    logo.onerror = resolve; // skip if CORS blocked
+    logo.onerror = () => {
+      // Text fallback if image fails
+      ctx.fillStyle = '#0d0d0d';
+      ctx.fillRect(0, 0, W, BANNER_H);
+      ctx.fillStyle = LIME;
+      ctx.fillRect(0, BANNER_H - 4, W, 4);
+      ctx.fillStyle = LIME;
+      ctx.font = 'bold 50px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('KORNDOG RECORDS', W / 2, 64);
+      resolve();
+    };
     logo.src = 'https://korndogrecords.com/images/korndog-banner.png';
   });
 
-  // ── 4. Zombie Kitty — bottom right corner ─────────────────
+  // ── 2. Record photo — clean zone, no text overlap ─────────
+  if (post.photoDataUrl) {
+    await new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.max(W / img.width, PHOTO_H / img.height);
+        const sw    = img.width  * scale;
+        const sh    = img.height * scale;
+        const sx    = (W - sw) / 2;
+        const sy    = BANNER_H + (PHOTO_H - sh) / 2;
+        // Clip strictly to photo zone
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, BANNER_H, W, PHOTO_H);
+        ctx.clip();
+        ctx.drawImage(img, sx, sy, sw, sh);
+        ctx.restore();
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = post.photoDataUrl;
+    });
+
+    // Lime divider strip between photo and text panel
+    ctx.fillStyle = LIME;
+    ctx.fillRect(0, BANNER_H + PHOTO_H, W, DIVIDER);
+  }
+
+  // ── 3. Text panel — solid dark background ─────────────────
+  ctx.fillStyle = PANEL;
+  ctx.fillRect(0, TEXT_TOP, W, TEXT_H);
+
+  // Lime left accent bar
+  ctx.fillStyle = LIME;
+  ctx.fillRect(0, TEXT_TOP, 8, TEXT_H);
+
+  // ── 4. Body text ───────────────────────────────────────────
+  const PAD_L = 48;
+  const PAD_R = 48;
+  const maxTW = W - PAD_L - PAD_R;
+  let   textY = TEXT_TOP + 52;
+
+  ctx.fillStyle = '#f0f0f0';
+  ctx.textAlign = 'left';
+
+  // Auto font size based on length
+  const charCount  = bodyText.length;
+  const fontSize   = charCount < 180 ? 36 : charCount < 320 ? 30 : 26;
+  const lineHeight = fontSize * 1.5;
+  ctx.font = `${fontSize}px Arial, sans-serif`;
+
+  function wrapText(txt, maxW) {
+    const words = txt.split(' ');
+    const lines = [];
+    let   cur   = '';
+    for (const w of words) {
+      const test = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && cur) {
+        lines.push(cur);
+        cur = w;
+      } else { cur = test; }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  // Split on newlines, wrap each paragraph
+  const paragraphs = bodyText.split('\n').filter(p => p.trim());
+  const allLines   = [];
+  for (const para of paragraphs) {
+    allLines.push(...wrapText(para, maxTW));
+    allLines.push(''); // paragraph gap
+  }
+
+  // How many lines fit above hashtags (leave 130px at bottom)
+  const availH   = TEXT_H - 130;
+  const maxLines = Math.floor(availH / lineHeight);
+  const visible  = allLines.slice(0, maxLines);
+  if (allLines.length > maxLines && visible.length > 0) {
+    const last = visible[visible.length - 1];
+    visible[visible.length - 1] = (last || '') + (last ? '…' : '');
+  }
+
+  for (const line of visible) {
+    if (line === '') {
+      textY += lineHeight * 0.35;
+    } else {
+      ctx.fillText(line, PAD_L, textY);
+      textY += lineHeight;
+    }
+  }
+
+  // ── 5. Hashtags in lime — anchored to bottom ──────────────
+  if (hashText) {
+    ctx.fillStyle = LIME;
+    ctx.font      = `bold 26px Arial, sans-serif`;
+    const hashLines = wrapText(hashText, maxTW - 130);
+    const hashStartY = H - 90;
+    hashLines.slice(0, 2).forEach((hl, i) => {
+      ctx.fillText(hl, PAD_L, hashStartY + i * 34);
+    });
+  }
+
+  // ── 6. Zombie Kitty — bottom right ────────────────────────
   await new Promise(resolve => {
     const kitty = new Image();
     kitty.crossOrigin = 'anonymous';
     kitty.onload = () => {
-      const kH = 140;
+      const kH = 105;
       const kW = (kitty.width / kitty.height) * kH;
       ctx.drawImage(kitty, W - kW - 20, H - kH - 20, kW, kH);
       resolve();
@@ -607,83 +705,11 @@ async function generateBrandedGraphic(post) {
     kitty.src = 'https://korndogrecords.com/images/zombie-kitty.png';
   });
 
-  // ── 5. Text area background ────────────────────────────────
-  const textAreaTop = post.photoDataUrl ? H * 0.63 : 120;
-  ctx.fillStyle = 'rgba(10,10,10,0.0)'; // transparent — gradient covers it
-  ctx.fillRect(0, textAreaTop, W, H - textAreaTop);
-
-  // Lime green accent bar
-  ctx.fillStyle = '#7FD41A';
-  ctx.fillRect(48, textAreaTop + 8, 6, post.photoDataUrl ? 160 : 200);
-
-  // ── 6. Body text ───────────────────────────────────────────
-  ctx.fillStyle = '#f0f0f0';
-  ctx.font      = 'bold 32px Barlow, Arial, sans-serif';
+  // ── 7. korndogrecords.com watermark ───────────────────────
+  ctx.fillStyle = 'rgba(127,212,26,0.4)';
+  ctx.font      = '20px Arial, sans-serif';
   ctx.textAlign = 'left';
-
-  const textX    = 72;
-  const maxWidth = W - textX - 60;
-  let   textY    = textAreaTop + 48;
-  const lineH    = 44;
-
-  // Word-wrap body text
-  const words = bodyText.split(' ');
-  let   line  = '';
-  const wrappedLines = [];
-
-  for (const word of words) {
-    const test = line ? line + ' ' + word : word;
-    if (ctx.measureText(test).width > maxWidth && line) {
-      wrappedLines.push(line);
-      line = word;
-    } else {
-      line = test;
-    }
-  }
-  if (line) wrappedLines.push(line);
-
-  // Max lines that fit — leave room for hashtags + kitty
-  const maxLines = post.photoDataUrl ? 7 : 12;
-  const visibleLines = wrappedLines.slice(0, maxLines);
-  if (wrappedLines.length > maxLines) {
-    visibleLines[maxLines - 1] = visibleLines[maxLines - 1] + '…';
-  }
-
-  visibleLines.forEach(l => {
-    ctx.fillText(l, textX, textY);
-    textY += lineH;
-  });
-
-  // ── 7. Hashtags in lime green ──────────────────────────────
-  if (hashText) {
-    textY += 12;
-    ctx.fillStyle = '#7FD41A';
-    ctx.font      = 'bold 26px Barlow, Arial, sans-serif';
-
-    // Word-wrap hashtags too
-    const hashWords   = hashText.split(' ');
-    let   hashLine    = '';
-    const hashWrapped = [];
-    for (const w of hashWords) {
-      const t = hashLine ? hashLine + ' ' + w : w;
-      if (ctx.measureText(t).width > maxWidth && hashLine) {
-        hashWrapped.push(hashLine);
-        hashLine = w;
-      } else { hashLine = t; }
-    }
-    if (hashLine) hashWrapped.push(hashLine);
-
-    hashWrapped.slice(0, 2).forEach(l => {
-      ctx.fillText(l, textX, textY);
-      textY += 36;
-    });
-  }
-
-  // ── 8. korndogrecords.com watermark ───────────────────────
-  ctx.fillStyle = 'rgba(127,212,26,0.55)';
-  ctx.font      = '22px Barlow, Arial, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('korndogrecords.com', 48, H - 28);
+  ctx.fillText('korndogrecords.com', PAD_L, H - 18);
 
   return canvas;
 }
