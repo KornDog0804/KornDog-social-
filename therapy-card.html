@@ -350,23 +350,59 @@ let photoMimeType  = 'image/jpeg'; // updated when photo is selected
 // ── Photo handling ────────────────────────────────────────────
 function handlePhoto(input) {
   const file = input.files?.[0];
-  if (!file) return;
+  if (!file) { setStatus('No file selected — try again.'); return; }
 
   photoMimeType = file.type || 'image/jpeg';
-  const reader = new FileReader();
-  reader.onload = e => {
-    photoDataUrl = e.target.result;
+  setStatus('⏳ Loading photo...');
+
+  // Use createObjectURL as primary — faster and avoids FileReader bugs on Android
+  // with Google Photos content URIs. Fall back to FileReader if it fails.
+  const objectUrl = URL.createObjectURL(file);
+  const testImg   = new Image();
+
+  testImg.onload = () => {
+    // Object URL worked — now compress via canvas and extract base64
+    const MAX_DIM = 1280;
+    let { naturalWidth: w, naturalHeight: h } = testImg;
+    if (w > MAX_DIM || h > MAX_DIM) {
+      const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
+      w = Math.round(w * ratio);
+      h = Math.round(h * ratio);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(testImg, 0, 0, w, h);
+    URL.revokeObjectURL(objectUrl);
+
+    photoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
     photoBase64  = photoDataUrl.split(',')[1];
-
-    const thumb = document.getElementById('photoThumb');
-    thumb.src = photoDataUrl;
-    thumb.style.display = 'block';
-
-    document.getElementById('photoDrop').style.display = 'none';
-    document.getElementById('generateBtn').disabled = false;
-    setStatus('Photo loaded — tap Generate!');
+    photoMimeType = 'image/jpeg';
+    showPhoto(photoDataUrl);
   };
-  reader.readAsDataURL(file);
+
+  testImg.onerror = () => {
+    // Object URL failed — fall back to FileReader
+    URL.revokeObjectURL(objectUrl);
+    const reader = new FileReader();
+    reader.onload = e => {
+      photoDataUrl = e.target.result;
+      photoBase64  = photoDataUrl.split(',')[1];
+      showPhoto(photoDataUrl);
+    };
+    reader.onerror = () => setStatus('❌ Could not load photo. Try a different image.');
+    reader.readAsDataURL(file);
+  };
+
+  testImg.src = objectUrl;
+}
+
+function showPhoto(dataUrl) {
+  const thumb = document.getElementById('photoThumb');
+  thumb.src   = dataUrl;
+  thumb.style.display = 'block';
+  document.getElementById('photoDrop').style.display  = 'none';
+  document.getElementById('generateBtn').disabled = false;
+  setStatus('✅ Photo loaded — tap Generate!');
 }
 
 // ── Status ────────────────────────────────────────────────────
@@ -536,7 +572,6 @@ async function renderCard() {
   const PHOTO_Y = IY + LABEL_H + GAP;
   const STATS_Y = PHOTO_Y + PHOTO_H + GAP;
   const FOOT_Y  = STATS_Y + STATS_H + GAP;
-  const H       = FOOT_Y + FOOT_H + SLAB_PAD + 14;
 
   const canvas = document.getElementById('previewCanvas');
   canvas.width  = W;
