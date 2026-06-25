@@ -555,9 +555,9 @@ async function renderCard() {
 
   // Zone heights — photo gets the most space, footer is tight
   const LABEL_H = 138;
-  const PHOTO_H = 500;
-  const STATS_H = 320;
-  const FOOT_H  = 80;
+  const PHOTO_H = 580;
+  const STATS_H = 240;
+  const FOOT_H  = 75;
   const GAP     = 8;
   const IY      = SLAB_PAD + 14;
   const H       = IY + LABEL_H + GAP + PHOTO_H + GAP + STATS_H + GAP + FOOT_H + SLAB_PAD + 14;
@@ -729,7 +729,7 @@ async function renderCard() {
   if (photoImg) {
     const pX = IX + CARD_PAD, pY = PHOTO_Y + CARD_PAD;
     const pW = IW - CARD_PAD*2, pH = PHOTO_H - CARD_PAD*2;
-    const scale = Math.min(pW/photoImg.width, pH/photoImg.height);
+    const scale = Math.max(pW/photoImg.width, pH/photoImg.height);
     const sw = photoImg.width*scale, sh = photoImg.height*scale;
     ctx.save();
     roundRect(pX, pY, pW, pH, 6);
@@ -780,24 +780,27 @@ async function renderCard() {
   const C1X = IX + 14;
   let c1Y = STATS_Y + 28;
 
-  function statBlock(icon, label, value, x, y, maxW) {
-    // Label
-    ctx.fillStyle = '#555'; ctx.font = 'bold 12px Arial, sans-serif';
+  function statBlock(label, value, x, y, maxW) {
+    // Small grey label
+    ctx.fillStyle = '#666'; ctx.font = 'bold 11px Arial, sans-serif';
     ctx.textAlign = 'left';
     ctx.fillText(label, x, y);
-    // Value — bigger and bolder
-    ctx.fillStyle = '#eee'; ctx.font = 'bold 22px Arial Black, Arial, sans-serif';
-    const lines = wrapText(value.toUpperCase(), maxW, 'bold 22px Arial Black, Arial, sans-serif');
-    lines.slice(0,2).forEach((l,i) => ctx.fillText(l, x, y + 24 + i*26));
-    // Lime underline
+    // Bold white value
+    ctx.fillStyle = '#eeeeee'; ctx.font = 'bold 20px Arial Black, Arial, sans-serif';
+    const lines = wrapText(value.toUpperCase(), maxW, 'bold 20px Arial Black, Arial, sans-serif');
+    lines.slice(0,2).forEach((l,i) => ctx.fillText(l, x, y + 20 + i*24));
+    // Lime underline under value
     ctx.fillStyle = LIME;
-    ctx.fillRect(x, y + 26 + Math.max(0,lines.length-1)*26 + 6, Math.min(ctx.measureText(lines[0]||'').width, maxW), 2);
-    return y + 24 + Math.max(1,lines.length)*26 + 16;
+    const ulY = y + 22 + Math.max(0, lines.length-1)*24 + 4;
+    ctx.fillRect(x, ulY, Math.min(ctx.measureText(lines[0]||'').width + 4, maxW), 2);
+    return ulY + 18; // next block starts after underline + gap
   }
 
-  c1Y = statBlock('', 'GENRE',  genre,  C1X, c1Y, COL_W - 24);
-  c1Y = statBlock('', 'FORMAT', format, C1X, c1Y, COL_W - 24);
-       statBlock('', 'VIBE',   vibe,   C1X, c1Y, COL_W - 24);
+  // Evenly space the 3 stat blocks across 240px stats height
+  const statGap = (STATS_H - 20) / 3;
+  c1Y = statBlock('GENRE',  genre,  C1X, STATS_Y + 16,           COL_W - 24);
+        statBlock('FORMAT', format, C1X, STATS_Y + 16 + statGap,  COL_W - 24);
+        statBlock('VIBE',   vibe,   C1X, STATS_Y + 16 + statGap*2, COL_W - 24);
 
   // ── COL 2: Joey Says ──────────────────────────────────────
   const C2X = IX + COL_W + 14;
@@ -817,19 +820,19 @@ async function renderCard() {
 
   // Joey text — bigger, more readable
   ctx.fillStyle = '#d8d8d8';
-  ctx.font      = '21px Arial, sans-serif';
+  ctx.font      = '22px Arial, sans-serif';
   const joeyLines = joey.split('\n').flatMap(line =>
-    wrapText(line, C2W, '21px Arial, sans-serif')
+    wrapText(line, C2W, '22px Arial, sans-serif')
   );
   c2Y += 10;
   joeyLines.slice(0, 7).forEach(l => {
     ctx.fillText(l, C2X, c2Y);
-    c2Y += 30;
+    c2Y += 28;
   });
 
   // Zombie Kitty — bottom right of col 2
   if (kittyImg) {
-    const kH = 85;
+    const kH = 75;
     const kW = (kittyImg.width / kittyImg.height) * kH;
     ctx.drawImage(kittyImg, IX + COL_W*2 - kW - 8, STATS_Y + STATS_H - kH - 6, kW, kH);
   }
@@ -850,23 +853,23 @@ async function renderCard() {
     return y + 50;
   }
 
-  // Therapy Score — medium size, clean
+  // Therapy Score — big number, small /10, baseline-aligned
   ctx.fillStyle = LIME;
-  ctx.font      = 'bold 12px Arial, sans-serif';
+  ctx.font      = 'bold 11px Arial, sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('💜 THERAPY SCORE', C3X, c3Y);
-  c3Y += 8;
-  ctx.fillStyle = '#fff';
-  ctx.font      = 'bold 48px Arial Black, Arial, sans-serif';
-  ctx.fillText(score, C3X, c3Y + 44);
+  c3Y += 10;
+  const scoreBY = c3Y + 52; // shared baseline
+  ctx.fillStyle = '#ffffff';
+  ctx.font      = 'bold 58px Arial Black, Arial, sans-serif';
+  ctx.fillText(score, C3X, scoreBY);
+  // /10 smaller, baseline-aligned with score
   ctx.fillStyle = LIME;
-  ctx.font      = 'bold 20px Arial, sans-serif';
-  const sw2 = (() => { ctx.font='bold 48px Arial Black, Arial, sans-serif'; return ctx.measureText(score).width; })();
-  ctx.font = 'bold 20px Arial, sans-serif';
-  ctx.fillText('/10', C3X + sw2 + 4, c3Y + 38);
+  ctx.font      = 'bold 22px Arial, sans-serif';
+  ctx.fillText('/10', C3X + (() => { ctx.font='bold 58px Arial Black, Arial, sans-serif'; const w=ctx.measureText(score).width; ctx.font='bold 22px Arial, sans-serif'; return w; })() + 4, scoreBY);
   ctx.fillStyle = '#252525';
-  ctx.fillRect(C3X, c3Y + 52, C3W, 1);
-  c3Y += 64;
+  ctx.fillRect(C3X, scoreBY + 8, C3W, 1);
+  c3Y = scoreBY + 20;
 
   c3Y = scoreBlock('💿 VINYL GRADE',  vinyl,  c3Y);
   c3Y = scoreBlock('📦 JACKET GRADE', jacket, c3Y);
