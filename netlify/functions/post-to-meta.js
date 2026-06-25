@@ -111,15 +111,22 @@ async function postTextToFacebook(pageId, token, message) {
 }
 
 async function uploadPhotoToFacebook(pageId, token, base64, mimeType) {
-  // Upload as unpublished photo, get photo ID to attach to post
+  // Facebook requires multipart/form-data — base64 in JSON body is rejected
+  const buffer   = Buffer.from(base64, 'base64');
+  const boundary = 'KornDogBound' + Date.now();
+
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="source"; filename="photo.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`),
+    buffer,
+    Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="published"\r\n\r\nfalse\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="access_token"\r\n\r\n${token}\r\n`),
+    Buffer.from(`--${boundary}--\r\n`),
+  ]);
+
   const res = await fetchWithTimeout(`${GRAPH}/${pageId}/photos`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      access_token: token,
-      published:    false,
-      source:       `data:${mimeType};base64,${base64}`,
-    }),
+    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body,
   });
   const data = await parseJSON(res, 'Facebook photo upload');
   return data.id;
@@ -131,28 +138,33 @@ async function postToFacebookWithPhoto(pageId, token, message, photoId) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message,
-      access_token:        token,
-      attached_media:      [{ media_fbid: photoId }],
+      access_token:   token,
+      attached_media: [{ media_fbid: photoId }],
     }),
   });
   return parseJSON(res, 'Facebook post with photo');
 }
 
 async function getPublicImageUrl(pageId, token, base64, mimeType) {
-  // Upload photo published to get a public URL for Instagram
+  const buffer   = Buffer.from(base64, 'base64');
+  const boundary = 'KornDogBound' + Date.now();
+
+  const body = Buffer.concat([
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="source"; filename="photo.jpg"\r\nContent-Type: ${mimeType}\r\n\r\n`),
+    buffer,
+    Buffer.from(`\r\n--${boundary}\r\nContent-Disposition: form-data; name="published"\r\n\r\ntrue\r\n`),
+    Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="access_token"\r\n\r\n${token}\r\n`),
+    Buffer.from(`--${boundary}--\r\n`),
+  ]);
+
   const res = await fetchWithTimeout(`${GRAPH}/${pageId}/photos`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      access_token: token,
-      published:    true,
-      source:       `data:${mimeType};base64,${base64}`,
-    }),
+    headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+    body,
   });
   const data    = await parseJSON(res, 'Facebook photo for IG');
   const photoId = data.id;
 
-  // Get the URL of the uploaded photo
   const urlRes  = await fetchWithTimeout(`${GRAPH}/${photoId}?fields=images&access_token=${token}`, {
     method: 'GET',
   });
