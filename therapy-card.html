@@ -236,10 +236,10 @@
 <div class="form-section">
   <!-- Photo upload -->
   <div class="photo-drop" id="photoDrop">
-    <input type="file" accept="image/*" capture="environment" id="photoInput" onchange="handlePhoto(this)">
+    <input type="file" accept="image/*" id="photoInput" onchange="handlePhoto(this)">
     <div class="drop-icon">📷</div>
-    <div class="drop-label">TAP TO SNAP THE RECORD</div>
-    <div class="drop-sub">Camera or library · AI reads the cover automatically</div>
+    <div class="drop-label">TAP TO ADD RECORD PHOTO</div>
+    <div class="drop-sub">Camera · Photo library · AI reads the cover automatically</div>
   </div>
 
   <img id="photoThumb" alt="Record photo">
@@ -452,7 +452,7 @@ If you cannot read the cover clearly, make your best educated guess from what is
     document.getElementById('f_kitty').value  = card.kittyPick   || 'Crate Gold';
 
     // Store hashtags for rendering
-    window._hashtags = card.hashtags || '#KorndogRecords #VinylTherapy';
+    window._cardHashtags = card.hashtags || '#KorndogRecords #VinylTherapy';
 
     // Show fields + render card
     document.getElementById('fieldsSection').classList.add('visible');
@@ -507,28 +507,42 @@ async function renderCard() {
   const vinyl   = document.getElementById('f_vinyl').value   || 'VG+';
   const jacket  = document.getElementById('f_jacket').value  || 'VG+';
   const kitty   = document.getElementById('f_kitty').value   || 'Crate Gold';
-  const hashtags= window._hashtags || '#KorndogRecords #VinylTherapy';
+  const hashtags= window._cardHashtags || '#KorndogRecords #VinylTherapy';
 
-  // Use the pending session number (not yet saved — saved only on download)
   const sessStr = currentSessStr;
 
-  const W = 1080;
-  const H = 1520; // slightly taller for full card feel
+  // ── Canvas: 1080 wide, height calculated from zones ──────────
+  const W        = 1080;
+  const SLAB_PAD = 20;
+  const IX       = SLAB_PAD + 14;
+  const IW       = W - (SLAB_PAD + 14) * 2;
+
+  // Zone heights — photo gets the most space, footer is tight
+  const LABEL_H = 138;
+  const PHOTO_H = 500;
+  const STATS_H = 320;
+  const FOOT_H  = 80;
+  const GAP     = 8;
+  const IY      = SLAB_PAD + 14;
+  const H       = IY + LABEL_H + GAP + PHOTO_H + GAP + STATS_H + GAP + FOOT_H + SLAB_PAD + 14;
 
   const LIME   = '#7FD41A';
   const PURPLE = '#4a1a8a';
   const DARK   = '#0a0a0a';
-  const GOLD   = '#c9a227';
   const CREAM  = '#f0ead6';
   const PANEL  = '#111111';
-  const PANEL2 = '#161616';
+
+  // Derived zone Y positions
+  const PHOTO_Y = IY + LABEL_H + GAP;
+  const STATS_Y = PHOTO_Y + PHOTO_H + GAP;
+  const FOOT_Y  = STATS_Y + STATS_H + GAP;
+  const H       = FOOT_Y + FOOT_H + SLAB_PAD + 14;
 
   const canvas = document.getElementById('previewCanvas');
   canvas.width  = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // helpers
   function loadImg(src) {
     return new Promise(resolve => {
       const img = new Image();
@@ -565,7 +579,6 @@ async function renderCard() {
     ctx.closePath();
   }
 
-  // Load assets in parallel
   const [logoImg, kittyImg, photoImg] = await Promise.all([
     loadImg('https://korndogrecords.com/images/Screenshot_20250831-144625.png'),
     loadImg('https://korndogrecords.com/images/3817.png'),
@@ -577,70 +590,41 @@ async function renderCard() {
     }) : Promise.resolve(null)
   ]);
 
-  // ── PSA SLAB OUTER SHELL ──────────────────────────────────
-  // Dark grey slab border
-  const SLAB_PAD = 24;
+  // ── SLAB SHELL ────────────────────────────────────────────
   ctx.fillStyle = '#1c1c1c';
   ctx.fillRect(0, 0, W, H);
-
-  // Slab inner background
-  const SLAB_X = SLAB_PAD;
-  const SLAB_Y = SLAB_PAD;
-  const SLAB_W = W - SLAB_PAD * 2;
-  const SLAB_H = H - SLAB_PAD * 2;
   ctx.fillStyle = DARK;
-  roundRect(SLAB_X, SLAB_Y, SLAB_W, SLAB_H, 16);
+  roundRect(SLAB_PAD, SLAB_PAD, W - SLAB_PAD*2, H - SLAB_PAD*2, 16);
   ctx.fill();
-
-  // Outer slab rim highlight
-  ctx.strokeStyle = '#333333';
+  ctx.strokeStyle = '#2a2a2a';
   ctx.lineWidth   = 2;
-  roundRect(SLAB_X, SLAB_Y, SLAB_W, SLAB_H, 16);
+  roundRect(SLAB_PAD, SLAB_PAD, W - SLAB_PAD*2, H - SLAB_PAD*2, 16);
   ctx.stroke();
 
-  // ── ZONE LAYOUT ───────────────────────────────────────────
-  const IX = SLAB_X + 16; // inner X
-  const IW = SLAB_W - 32; // inner width
-  const IY = SLAB_Y + 16;
-
-  // Top label bar height
-  const LABEL_H = 150;
-  // Photo section
-  const PHOTO_Y = IY + LABEL_H + 8;
-  const PHOTO_H = 460;
-  // Gold card border padding
-  const CARD_PAD = 10;
-  // Stats panel
-  const STATS_Y  = PHOTO_Y + PHOTO_H + CARD_PAD + 16;
-  const STATS_H  = 300;
-  // Footer
-  const FOOT_Y   = STATS_Y + STATS_H + 12;
-  const FOOT_H   = H - FOOT_Y - SLAB_PAD - 16;
-
   // ── 1. PSA LABEL BAR ──────────────────────────────────────
-  // Cream background label
   ctx.fillStyle = CREAM;
   roundRect(IX, IY, IW, LABEL_H, 10);
   ctx.fill();
 
-  // Purple top stripe on label
+  // Purple top stripe
   ctx.fillStyle = PURPLE;
-  roundRect(IX, IY, IW, 18, 10);
+  roundRect(IX, IY, IW, 16, 10);
   ctx.fill();
-  ctx.fillRect(IX, IY + 8, IW, 10); // flatten bottom of stripe
+  ctx.fillRect(IX, IY + 8, IW, 8);
 
-  // KornDog logo circle — left of label
+  // KornDog circular logo — clipped to circle, left of label
   if (logoImg) {
-    const lSize = 110;
-    const lX    = IX + 10;
-    const lY    = IY + (LABEL_H - lSize) / 2;
+    const lSize = LABEL_H - 16; // circle diameter fits label height
+    const lX    = IX + 8;
+    const lY    = IY + 8;
+    // Draw the square image clipped to circle
     ctx.save();
     ctx.beginPath();
     ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI*2);
     ctx.clip();
     ctx.drawImage(logoImg, lX, lY, lSize, lSize);
     ctx.restore();
-    // Circle border
+    // Thin purple ring around logo
     ctx.strokeStyle = PURPLE;
     ctx.lineWidth   = 3;
     ctx.beginPath();
@@ -648,292 +632,235 @@ async function renderCard() {
     ctx.stroke();
   }
 
-  // Label text
-  const LTX = IX + 132; // text start X
-  const LTW = IW - 132 - 130; // text width (leave room for grade)
+  // Shift label text right to clear the logo
+  const LOGO_SIZE = LABEL_H - 16;
 
+  // Label text area
+  const LTX = IX + LOGO_SIZE + 20;
+  const LTW = IW - 150;
   ctx.textAlign = 'left';
 
-  // "1990 KORNDOG"
-  ctx.fillStyle = '#222222';
-  ctx.font      = 'bold 22px Arial, sans-serif';
-  ctx.fillText('1990 KORNDOG', LTX, IY + 44);
-
-  // Session number — purple
+  // "1990 KORNDOG #001"
+  ctx.fillStyle = '#333';
+  ctx.font      = 'bold 20px Arial, sans-serif';
+  ctx.fillText('1990 KORNDOG', LTX, IY + 40);
   ctx.fillStyle = PURPLE;
-  ctx.font      = 'bold 22px Arial, sans-serif';
-  const sess1W = ctx.measureText('1990 KORNDOG  ').width;
-  ctx.fillText(`#${sessStr}`, LTX + sess1W, IY + 44);
+  ctx.fillText(`  #${sessStr}`, LTX + ctx.measureText('1990 KORNDOG').width, IY + 40);
 
-  // Artist name — big bold
-  ctx.fillStyle = '#111111';
-  ctx.font      = 'bold 30px Arial Black, Arial, sans-serif';
-  const artistLines = wrapText(artist.toUpperCase(), LTW, 'bold 30px Arial Black, Arial, sans-serif');
-  artistLines.slice(0, 2).forEach((l, i) => ctx.fillText(l, LTX, IY + 78 + i * 32));
+  // Artist — big
+  ctx.fillStyle = '#111';
+  ctx.font      = 'bold 32px Arial Black, Arial, sans-serif';
+  const artistLines = wrapText(artist.toUpperCase(), LTW, 'bold 32px Arial Black, Arial, sans-serif');
+  artistLines.slice(0, 2).forEach((l, i) => ctx.fillText(l, LTX, IY + 72 + i * 34));
 
-  // Album title — purple italic
+  // Album — purple italic
   ctx.fillStyle = PURPLE;
-  ctx.font      = 'italic bold 20px Arial, sans-serif';
-  ctx.fillText(album.toUpperCase(), LTX, IY + 78 + Math.min(artistLines.length, 2) * 32 + 4);
+  ctx.font      = 'italic bold 19px Arial, sans-serif';
+  ctx.fillText(album.toUpperCase(), LTX, IY + 72 + Math.min(artistLines.length,2)*34 + 2);
 
-  // Barcode simulation — deterministic so it doesn't flicker on re-render
-  const bcY = IY + LABEL_H - 28;
-  ctx.fillStyle = '#222';
-  ctx.font      = '11px monospace';
-  ctx.fillText('VINYL THERAPY SESSION', LTX + 80, bcY + 16);
+  // Deterministic barcode
+  const bcY = IY + LABEL_H - 24;
   const barcodeSeed = sessStr + artist + album;
-  for (let b = 0; b < 60; b++) {
+  for (let b = 0; b < 55; b++) {
     const code = barcodeSeed.charCodeAt(b % barcodeSeed.length);
     const bw   = code % 3 === 0 ? 3 : code % 2 === 0 ? 2 : 1;
-    ctx.fillStyle = '#222';
-    ctx.fillRect(LTX + b * 2.2, bcY, bw, 12);
+    ctx.fillStyle = '#333';
+    ctx.fillRect(LTX + b * 2.4, bcY, bw, 10);
   }
+  ctx.fillStyle = '#666';
+  ctx.font      = '10px monospace';
+  ctx.fillText('VINYL THERAPY SESSION', LTX + 145, bcY + 10);
 
-  // GEM MT grade — right side of label
-  const GX = IX + IW - 118;
-  ctx.fillStyle = '#222222';
-  ctx.font      = 'bold 16px Arial, sans-serif';
+  // GEM MT badge — right of label
+  const GX = IX + IW - 125;
+  ctx.fillStyle = '#222';
+  ctx.font      = 'bold 15px Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('GEM MT', GX + 50, IY + 44);
-  ctx.font      = 'bold 72px Arial Black, Arial, sans-serif';
-  ctx.fillText('10', GX + 50, IY + 118);
+  ctx.fillText('GEM MT', GX + 55, IY + 42);
+  ctx.font      = 'bold 68px Arial Black, Arial, sans-serif';
+  ctx.fillText('10', GX + 55, IY + 116);
 
-  // ── 2. GOLD CARD FRAME + PHOTO ─────────────────────────────
-  // Gold gradient border
-  const grd = ctx.createLinearGradient(IX, PHOTO_Y, IX + IW, PHOTO_Y + PHOTO_H);
+  // ── 2. GOLD FRAME + PHOTO ─────────────────────────────────
+  const CARD_PAD = 10;
+  const grd = ctx.createLinearGradient(IX, PHOTO_Y, IX+IW, PHOTO_Y+PHOTO_H);
   grd.addColorStop(0,   '#f0c040');
-  grd.addColorStop(0.3, '#c9a227');
-  grd.addColorStop(0.7, '#e8b820');
-  grd.addColorStop(1,   '#a07010');
+  grd.addColorStop(0.4, '#c9a227');
+  grd.addColorStop(0.8, '#e8b820');
+  grd.addColorStop(1,   '#906810');
   ctx.fillStyle = grd;
-  roundRect(IX, PHOTO_Y, IW, PHOTO_H, 12);
+  roundRect(IX, PHOTO_Y, IW, PHOTO_H, 10);
   ctx.fill();
 
-  // Photo inside gold border
-  const PP = CARD_PAD; // photo padding inside gold border
   if (photoImg) {
-    const pX = IX + PP;
-    const pY = PHOTO_Y + PP;
-    const pW = IW - PP * 2;
-    const pH = PHOTO_H - PP * 2;
-    const scale = Math.max(pW / photoImg.width, pH / photoImg.height);
-    const sw    = photoImg.width  * scale;
-    const sh    = photoImg.height * scale;
-    const sx    = pX + (pW - sw) / 2;
-    const sy    = pY + (pH - sh) / 2;
-
+    const pX = IX + CARD_PAD, pY = PHOTO_Y + CARD_PAD;
+    const pW = IW - CARD_PAD*2, pH = PHOTO_H - CARD_PAD*2;
+    const scale = Math.max(pW/photoImg.width, pH/photoImg.height);
+    const sw = photoImg.width*scale, sh = photoImg.height*scale;
     ctx.save();
     roundRect(pX, pY, pW, pH, 6);
     ctx.clip();
-    ctx.drawImage(photoImg, sx, sy, sw, sh);
+    ctx.drawImage(photoImg, pX+(pW-sw)/2, pY+(pH-sh)/2, sw, sh);
     ctx.restore();
   } else {
-    // Placeholder
-    ctx.fillStyle = '#222';
-    roundRect(IX + PP, PHOTO_Y + PP, IW - PP*2, PHOTO_H - PP*2, 6);
+    ctx.fillStyle = '#1a1a1a';
+    roundRect(IX+CARD_PAD, PHOTO_Y+CARD_PAD, IW-CARD_PAD*2, PHOTO_H-CARD_PAD*2, 6);
     ctx.fill();
-    ctx.fillStyle = '#444';
-    ctx.font = 'bold 28px Arial, sans-serif';
+    ctx.fillStyle = '#444'; ctx.font = 'bold 26px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('RECORD PHOTO', IX + IW/2, PHOTO_Y + PHOTO_H/2);
+    ctx.fillText('RECORD PHOTO', IX+IW/2, PHOTO_Y+PHOTO_H/2);
   }
 
-  // "REAL MUSIC. REAL SOUL." badge — bottom right of photo
-  const bdX = IX + IW - 112;
-  const bdY = PHOTO_Y + PHOTO_H - 120;
+  // REAL MUSIC. REAL SOUL. badge
+  const bdX = IX + IW - 100, bdY = PHOTO_Y + PHOTO_H - 100;
   ctx.save();
-  ctx.beginPath();
-  ctx.arc(bdX, bdY, 52, 0, Math.PI*2);
-  ctx.fillStyle = LIME;
-  ctx.fill();
-  ctx.strokeStyle = '#0a0a0a';
-  ctx.lineWidth   = 3;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(bdX, bdY, 48, 0, Math.PI*2);
+  ctx.fillStyle = LIME; ctx.fill();
+  ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 3; ctx.stroke();
   ctx.restore();
   ctx.fillStyle = '#0a0a0a';
-  ctx.font      = 'bold 13px Arial Black, Arial, sans-serif';
+  ctx.font = 'bold 12px Arial Black, Arial, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('REAL', bdX, bdY - 18);
-  ctx.fillText('MUSIC.', bdX, bdY - 2);
-  ctx.fillText('REAL', bdX, bdY + 14);
-  ctx.fillText('SOUL.', bdX, bdY + 30);
+  ['REAL','MUSIC.','REAL','SOUL.'].forEach((t,i) => ctx.fillText(t, bdX, bdY - 18 + i*16));
 
-  // ── 3. STATS PANEL — 3 columns ─────────────────────────────
+  // ── 3. STATS PANEL — 3 columns ────────────────────────────
   ctx.fillStyle = PANEL;
-  roundRect(IX, STATS_Y, IW, STATS_H, 10);
+  roundRect(IX, STATS_Y, IW, STATS_H, 8);
   ctx.fill();
-  ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth   = 1.5;
-  roundRect(IX, STATS_Y, IW, STATS_H, 10);
+  ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.5;
+  roundRect(IX, STATS_Y, IW, STATS_H, 8);
   ctx.stroke();
 
   const COL_W = IW / 3;
 
-  // Column dividers
-  ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth   = 1.5;
-  [1, 2].forEach(n => {
+  // Dividers
+  [1,2].forEach(n => {
+    ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(IX + COL_W * n, STATS_Y + 16);
-    ctx.lineTo(IX + COL_W * n, STATS_Y + STATS_H - 16);
+    ctx.moveTo(IX + COL_W*n, STATS_Y + 12);
+    ctx.lineTo(IX + COL_W*n, STATS_Y + STATS_H - 12);
     ctx.stroke();
   });
 
-  // ── COL 1: Genre / Format / Vibe ───────────────────────────
-  const C1X = IX + 16;
-  let   c1Y = STATS_Y + 32;
+  // ── COL 1: Genre / Format / Vibe ──────────────────────────
+  const C1X = IX + 14;
+  let c1Y = STATS_Y + 28;
 
-  function statRow(icon, label, value, x, y, maxW) {
-    ctx.fillStyle = LIME;
-    ctx.font      = '18px Arial, sans-serif';
+  function statBlock(icon, label, value, x, y, maxW) {
+    // Label
+    ctx.fillStyle = '#555'; ctx.font = 'bold 12px Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(icon, x, y);
-
-    ctx.fillStyle = '#666666';
-    ctx.font      = 'bold 11px Arial, sans-serif';
-    ctx.fillText(label, x + 26, y - 10);
-
-    ctx.fillStyle = '#f0f0f0';
-    ctx.font      = 'bold 18px Arial Black, Arial, sans-serif';
-    const lines = wrapText(value.toUpperCase(), maxW - 26, 'bold 18px Arial Black, Arial, sans-serif');
-    lines.slice(0, 2).forEach((l, i) => ctx.fillText(l, x + 26, y + 6 + i * 22));
-    return y + 28 + Math.max(0, lines.length - 1) * 22;
+    ctx.fillText(label, x, y);
+    // Value — bigger and bolder
+    ctx.fillStyle = '#eee'; ctx.font = 'bold 22px Arial Black, Arial, sans-serif';
+    const lines = wrapText(value.toUpperCase(), maxW, 'bold 22px Arial Black, Arial, sans-serif');
+    lines.slice(0,2).forEach((l,i) => ctx.fillText(l, x, y + 24 + i*26));
+    // Lime underline
+    ctx.fillStyle = LIME;
+    ctx.fillRect(x, y + 26 + Math.max(0,lines.length-1)*26 + 6, Math.min(ctx.measureText(lines[0]||'').width, maxW), 2);
+    return y + 24 + Math.max(1,lines.length)*26 + 16;
   }
 
-  c1Y = statRow('🎵', 'GENRE',  genre,  C1X, c1Y, COL_W - 20);
-  c1Y += 18;
-  c1Y = statRow('💿', 'FORMAT', format, C1X, c1Y, COL_W - 20);
-  c1Y += 18;
-       statRow('✨', 'VIBE',   vibe,   C1X, c1Y, COL_W - 20);
+  c1Y = statBlock('', 'GENRE',  genre,  C1X, c1Y, COL_W - 24);
+  c1Y = statBlock('', 'FORMAT', format, C1X, c1Y, COL_W - 24);
+       statBlock('', 'VIBE',   vibe,   C1X, c1Y, COL_W - 24);
 
-  // ── COL 2: Joey Says ───────────────────────────────────────
-  const C2X = IX + COL_W + 16;
-  let   c2Y = STATS_Y + 24;
+  // ── COL 2: Joey Says ──────────────────────────────────────
+  const C2X = IX + COL_W + 14;
+  const C2W = COL_W - 28;
+  let c2Y = STATS_Y + 20;
 
   ctx.fillStyle = LIME;
-  ctx.font      = 'italic bold 24px Georgia, serif';
+  ctx.font      = 'italic bold 22px Georgia, serif';
   ctx.textAlign = 'left';
-  ctx.fillText('JOEY SAYS:', C2X, c2Y + 16);
+  ctx.fillText('JOEY SAYS:', C2X, c2Y + 18);
+  c2Y += 32;
 
-  // Big quote mark
-  ctx.fillStyle = 'rgba(127,212,26,0.18)';
-  ctx.font      = 'bold 80px Georgia, serif';
-  ctx.fillText('"', C2X - 4, c2Y + 90);
+  // Faint quote mark
+  ctx.fillStyle = 'rgba(127,212,26,0.12)';
+  ctx.font      = 'bold 90px Georgia, serif';
+  ctx.fillText('"', C2X - 6, c2Y + 70);
 
-  ctx.fillStyle = '#cccccc';
-  ctx.font      = '18px Arial, sans-serif';
+  // Joey text — bigger, more readable
+  ctx.fillStyle = '#d8d8d8';
+  ctx.font      = '21px Arial, sans-serif';
   const joeyLines = joey.split('\n').flatMap(line =>
-    wrapText(line, COL_W - 36, '18px Arial, sans-serif')
+    wrapText(line, C2W, '21px Arial, sans-serif')
   );
-  c2Y += 44;
-  joeyLines.slice(0, 8).forEach(l => {
+  c2Y += 10;
+  joeyLines.slice(0, 7).forEach(l => {
     ctx.fillText(l, C2X, c2Y);
-    c2Y += 26;
+    c2Y += 30;
   });
 
-  // Zombie Kitty in Joey Says column bottom
+  // Zombie Kitty — bottom right of col 2
   if (kittyImg) {
-    const kH = 80;
+    const kH = 85;
     const kW = (kittyImg.width / kittyImg.height) * kH;
-    ctx.drawImage(kittyImg, C2X + COL_W - kW - 20, STATS_Y + STATS_H - kH - 8, kW, kH);
+    ctx.drawImage(kittyImg, IX + COL_W*2 - kW - 8, STATS_Y + STATS_H - kH - 6, kW, kH);
   }
 
-  // ── COL 3: Scores ──────────────────────────────────────────
-  const C3X = IX + COL_W * 2 + 16;
-  let   c3Y = STATS_Y + 28;
+  // ── COL 3: Scores — clean, no giant duplicate ─────────────
+  const C3X = IX + COL_W*2 + 14;
   const C3W = COL_W - 24;
+  let c3Y = STATS_Y + 20;
 
-  function scoreRow(icon, label, value, x, y) {
-    ctx.fillStyle = LIME;
-    ctx.font      = '16px Arial, sans-serif';
+  function scoreBlock(label, value, y) {
+    ctx.fillStyle = '#555'; ctx.font = 'bold 12px Arial, sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(icon + ' ' + label, x, y);
-
-    ctx.fillStyle = '#f0f0f0';
-    ctx.font      = 'bold 28px Arial Black, Arial, sans-serif';
-    ctx.fillText(value, x, y + 28);
-
-    // Underline
-    ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(x, y + 38); ctx.lineTo(x + C3W, y + 38);
-    ctx.stroke();
-    return y + 52;
+    ctx.fillText(label, C3X, y);
+    ctx.fillStyle = '#eee'; ctx.font = 'bold 26px Arial Black, Arial, sans-serif';
+    ctx.fillText(value, C3X, y + 26);
+    ctx.fillStyle = '#252525';
+    ctx.fillRect(C3X, y + 34, C3W, 1);
+    return y + 50;
   }
 
-  // Therapy Score
+  // Therapy Score — medium size, clean
   ctx.fillStyle = LIME;
-  ctx.font      = 'bold 13px Arial, sans-serif';
+  ctx.font      = 'bold 12px Arial, sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('💜 THERAPY SCORE', C3X, c3Y);
-  c3Y += 6;
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 56px Arial Black, Arial, sans-serif';
-  ctx.fillText(score, C3X, c3Y + 52);
+  c3Y += 8;
+  ctx.fillStyle = '#fff';
+  ctx.font      = 'bold 48px Arial Black, Arial, sans-serif';
+  ctx.fillText(score, C3X, c3Y + 44);
   ctx.fillStyle = LIME;
-  ctx.font      = 'bold 24px Arial, sans-serif';
-  ctx.fillText('/10', C3X + ctx.measureText(score).width + 4, c3Y + 52);
-  ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth   = 1;
-  ctx.beginPath();
-  ctx.moveTo(C3X, c3Y + 60); ctx.lineTo(C3X + C3W, c3Y + 60);
-  ctx.stroke();
-  c3Y += 72;
+  ctx.font      = 'bold 20px Arial, sans-serif';
+  const sw2 = (() => { ctx.font='bold 48px Arial Black, Arial, sans-serif'; return ctx.measureText(score).width; })();
+  ctx.font = 'bold 20px Arial, sans-serif';
+  ctx.fillText('/10', C3X + sw2 + 4, c3Y + 38);
+  ctx.fillStyle = '#252525';
+  ctx.fillRect(C3X, c3Y + 52, C3W, 1);
+  c3Y += 64;
 
-  c3Y = scoreRow('💿', 'VINYL GRADE',  vinyl,  C3X, c3Y);
-  c3Y += 4;
-  c3Y = scoreRow('📦', 'JACKET GRADE', jacket, C3X, c3Y);
-  c3Y += 4;
+  c3Y = scoreBlock('💿 VINYL GRADE',  vinyl,  c3Y);
+  c3Y = scoreBlock('📦 JACKET GRADE', jacket, c3Y);
 
   // Kitty Pick
   ctx.fillStyle = LIME;
-  ctx.font      = 'bold 13px Arial, sans-serif';
+  ctx.font      = 'bold 12px Arial, sans-serif';
   ctx.fillText('🐱 KITTY PICK', C3X, c3Y);
-  ctx.fillStyle = '#f0f0f0';
-  ctx.font      = 'bold 20px Arial Black, Arial, sans-serif';
-  ctx.fillText(kitty.toUpperCase(), C3X, c3Y + 24);
+  ctx.fillStyle = '#eee';
+  ctx.font      = 'bold 19px Arial Black, Arial, sans-serif';
+  const kittyLines = wrapText(kitty.toUpperCase(), C3W, 'bold 19px Arial Black, Arial, sans-serif');
+  kittyLines.slice(0,2).forEach((l,i) => ctx.fillText(l, C3X, c3Y + 20 + i*22));
 
-  // ── 4. FOOTER ──────────────────────────────────────────────
+  // ── 4. FOOTER — tight lime bar ────────────────────────────
   ctx.fillStyle = LIME;
   roundRect(IX, FOOT_Y, IW, FOOT_H, 8);
   ctx.fill();
 
-  // Left: Vinyl Therapy Series badge
-  ctx.strokeStyle = '#0a0a0a';
-  ctx.lineWidth   = 2;
-  roundRect(IX + 8, FOOT_Y + 8, 90, FOOT_H - 16, 6);
-  ctx.stroke();
+  // Left: tagline
   ctx.fillStyle = '#0a0a0a';
-  ctx.font      = 'bold 11px Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('VINYL', IX + 8 + 45, FOOT_Y + 26);
-  ctx.fillText('THERAPY', IX + 8 + 45, FOOT_Y + 40);
-  ctx.fillText('SERIES', IX + 8 + 45, FOOT_Y + 54);
+  ctx.font      = 'bold 16px Arial Black, Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('RAW GROOVES. REAL REVIEWS. ZERO FLUFF.', IX + 16, FOOT_Y + FOOT_H/2 + 6);
 
-  // Center: tagline
-  ctx.fillStyle = '#0a0a0a';
-  ctx.font      = 'bold 18px Arial Black, Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('RAW GROOVES.', IX + IW/2, FOOT_Y + 30);
-  ctx.fillText('REAL REVIEWS. ZERO FLUFF.', IX + IW/2, FOOT_Y + 52);
-
-  // Paw print emoji
-  ctx.font = '28px Arial';
-  ctx.fillText('🐾', IX + IW/2, FOOT_Y + FOOT_H - 10);
-
-  // Right: hashtags + domain
-  ctx.fillStyle = '#0a0a0a';
-  ctx.font      = 'bold 13px Arial, sans-serif';
+  // Right: domain
+  ctx.font      = 'bold 14px Arial, sans-serif';
   ctx.textAlign = 'right';
-  const hashWords = hashtags.split(' ');
-  const h1 = hashWords.slice(0, 3).join(' ');
-  const h2 = hashWords.slice(3).join(' ');
-  ctx.fillText(h1, IX + IW - 12, FOOT_Y + 26);
-  if (h2) ctx.fillText(h2, IX + IW - 12, FOOT_Y + 42);
-  ctx.fillText('★ korndogrecords.com ★', IX + IW - 12, FOOT_Y + FOOT_H - 12);
+  ctx.fillText('★ korndogrecords.com ★', IX + IW - 16, FOOT_Y + FOOT_H/2 + 6);
 
-  // Show preview
   document.getElementById('previewWrap').classList.add('visible');
 }
 
@@ -957,7 +884,7 @@ async function downloadCard() {
   a.click();
   document.body.removeChild(a);
 
-  const caption = `${document.getElementById('f_artist').value} — ${document.getElementById('f_album').value}\n\n${document.getElementById('f_joey').value}\n\n${window._hashtags || '#KorndogRecords #VinylTherapy'}\n\nkorndogrecords.com`;
+  const caption = `${document.getElementById('f_artist').value} — ${document.getElementById('f_album').value}\n\n${document.getElementById('f_joey').value}\n\n${window._cardHashtags || '#KorndogRecords #VinylTherapy'}\n\nkorndogrecords.com`;
   if (navigator.clipboard) navigator.clipboard.writeText(caption).catch(() => {});
 
   showToast('📥 Card saved! Caption copied.');
