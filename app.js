@@ -534,7 +534,51 @@ async function regenCard() {
   }
 }
 
-// ── QUEUE ────────────────────────────────────────────────────
+// ── POST TO META ─────────────────────────────────────────────
+async function postToMeta(post, idx) {
+  const btn = document.querySelector(`#queueList .queue-item:nth-child(${idx + 1}) .qi-post`);
+  if (btn) { btn.disabled = true; btn.textContent = '📤 Posting...'; }
+
+  try {
+    const payload = {
+      message:  post.text,
+      platform: post.platform === 'both' ? 'both' : post.platform,
+    };
+    if (post.photoDataUrl) {
+      const [meta, base64] = post.photoDataUrl.split(',');
+      payload.imageBase64   = base64;
+      payload.imageMimeType = meta.replace('data:', '').replace(';base64', '');
+    }
+
+    const res  = await fetch('/.netlify/functions/post-to-meta', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (!res.ok || data.error) throw new Error(data.error || 'Post failed');
+
+    // Build success message
+    const parts = [];
+    if (data.facebook && !data.facebook.skipped) parts.push('Facebook ✓');
+    if (data.instagram && !data.instagram.skipped) parts.push('Instagram ✓');
+    if (data.instagram?.skipped) parts.push(`IG skipped: ${data.instagram.reason}`);
+
+    showToast('🔥 Posted! ' + parts.join(' · '));
+
+    // Remove from queue after successful post
+    state.queue.splice(idx, 1);
+    saveQueue();
+    updateBadge();
+    renderQueue();
+
+  } catch (err) {
+    console.error('[postToMeta]', err);
+    showToast('Post failed — check logs or try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Post Now'; }
+  }
+}
 function renderQueue() {
   const empty = document.getElementById('queueEmpty');
   const list  = document.getElementById('queueList');
@@ -567,7 +611,7 @@ function renderQueue() {
       </div>
       <div class="queue-item-actions">
         <button class="qi-btn qi-copy" onclick="copyPost(${JSON.stringify(post.text)})">📋 Copy</button>
-        <button class="qi-btn qi-post" onclick="showToast('Meta API coming in Phase 2!')">Post Now</button>
+        <button class="qi-btn qi-post" onclick="postToMeta(${JSON.stringify(post)}, ${i})">Post Now</button>
         <button class="qi-btn qi-delete" onclick="deleteQueued(${i})">🗑</button>
       </div>
     `;
