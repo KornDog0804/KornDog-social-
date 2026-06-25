@@ -729,7 +729,7 @@ async function renderCard() {
   if (photoImg) {
     const pX = IX + CARD_PAD, pY = PHOTO_Y + CARD_PAD;
     const pW = IW - CARD_PAD*2, pH = PHOTO_H - CARD_PAD*2;
-    const scale = Math.max(pW/photoImg.width, pH/photoImg.height);
+    const scale = Math.min(pW/photoImg.width, pH/photoImg.height);
     const sw = photoImg.width*scale, sh = photoImg.height*scale;
     ctx.save();
     roundRect(pX, pY, pW, pH, 6);
