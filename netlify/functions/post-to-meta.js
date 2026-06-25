@@ -65,15 +65,10 @@ exports.handler = async function (event) {
   try {
     // ── FACEBOOK ──────────────────────────────────────────────
     if (platform === 'facebook' || platform === 'both') {
-      if (hasImage) {
-        // Upload photo first, then attach to post
-        const photoId = await uploadPhotoToFacebook(pageId, pageToken, imageBase64, imageMimeType);
-        const post    = await postToFacebookWithPhoto(pageId, pageToken, message, photoId);
-        result.facebook = { id: post.id };
-      } else {
-        const post = await postTextToFacebook(pageId, pageToken, message);
-        result.facebook = { id: post.id };
-      }
+      // Post text only — photo upload via Graph API requires additional
+      // app permissions that may not be active yet
+      const post = await postTextToFacebook(pageId, pageToken, message);
+      result.facebook = { id: post.id };
     }
 
     // ── INSTAGRAM ─────────────────────────────────────────────
