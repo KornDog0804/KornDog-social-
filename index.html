@@ -8,6 +8,470 @@
   <title>KornDog Social Engine</title>
   <link rel="stylesheet" href="styles.css">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── SCAN / RESULTS LAYER ──────────────────────────────── */
+    #scanLayer {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0a0a0a;
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      padding: 0 0 40px;
+    }
+    #scanLayer.active { display: flex; }
+
+    /* Scan header */
+    .scan-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    .scan-back {
+      background: none;
+      border: none;
+      color: #7FD41A;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 0;
+      letter-spacing: 1px;
+    }
+    .scan-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      color: #f0f0f0;
+      letter-spacing: 2px;
+    }
+    .scan-session {
+      font-size: 13px;
+      color: #7FD41A;
+      font-weight: 700;
+    }
+
+    /* Album thumb */
+    .scan-album-thumb {
+      width: calc(100% - 40px);
+      max-width: 400px;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 20px auto 16px;
+      display: block;
+      border: 3px solid #7FD41A;
+    }
+    .scan-album-info {
+      text-align: center;
+      padding: 0 20px 20px;
+    }
+    .scan-artist {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 26px;
+      color: #f0f0f0;
+      letter-spacing: 2px;
+      line-height: 1.1;
+    }
+    .scan-album-title {
+      font-size: 15px;
+      color: #7FD41A;
+      font-weight: 700;
+      margin-top: 4px;
+      font-style: italic;
+    }
+    .scan-meta {
+      font-size: 13px;
+      color: #666;
+      margin-top: 6px;
+      letter-spacing: 1px;
+    }
+
+    /* Score row */
+    .scan-score-row {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px 20px;
+      width: 100%;
+      max-width: 440px;
+    }
+    .scan-score-chip {
+      flex: 1;
+      background: #111;
+      border: 1.5px solid #222;
+      border-radius: 10px;
+      padding: 12px 8px;
+      text-align: center;
+    }
+    .scan-score-chip .chip-label {
+      font-size: 10px;
+      color: #555;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .scan-score-chip .chip-val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: #7FD41A;
+      letter-spacing: 1px;
+    }
+
+    /* Joey preview */
+    .scan-joey-preview {
+      width: calc(100% - 40px);
+      max-width: 400px;
+      background: #111;
+      border-left: 4px solid #7FD41A;
+      border-radius: 0 10px 10px 0;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+      font-size: 15px;
+      color: #ccc;
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    /* Mode chooser */
+    .scan-choose-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #555;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .scan-mode-row {
+      display: flex;
+      gap: 12px;
+      padding: 0 20px;
+      width: 100%;
+      max-width: 440px;
+    }
+    .scan-mode-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 20px 12px;
+      border-radius: 16px;
+      border: 2px solid #222;
+      background: #111;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .scan-mode-btn:active { background: #1a1a1a; }
+    .scan-mode-btn.social-btn { border-color: #7FD41A; }
+    .scan-mode-btn.therapy-btn { border-color: #4a1a8a; }
+    .scan-mode-icon { font-size: 32px; }
+    .scan-mode-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+    }
+    .social-btn .scan-mode-title { color: #7FD41A; }
+    .therapy-btn .scan-mode-title { color: #9b4dff; }
+    .scan-mode-desc {
+      font-size: 12px;
+      color: #555;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Regenerate fields */
+    .scan-edit-row {
+      display: flex;
+      gap: 10px;
+      padding: 16px 20px 0;
+      width: 100%;
+      max-width: 440px;
+      align-items: center;
+    }
+    .scan-edit-label {
+      font-size: 12px;
+      color: #555;
+      flex: 1;
+      letter-spacing: 1px;
+    }
+    .scan-edit-btn {
+      background: none;
+      border: 1.5px solid #333;
+      border-radius: 8px;
+      color: #888;
+      padding: 8px 14px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .scan-edit-btn:hover { border-color: #7FD41A; color: #7FD41A; }
+
+    /* Loading overlay */
+    #scanLoading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10,10,10,0.96);
+      z-index: 300;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    #scanLoading.active { display: flex; }
+    .scan-loading-text {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      color: #7FD41A;
+      letter-spacing: 3px;
+      text-align: center;
+    }
+    .scan-loading-sub {
+      font-size: 13px;
+      color: #444;
+      letter-spacing: 1px;
+    }
+
+    /* Output preview sheet */
+    #outputSheet {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0a0a0a;
+      z-index: 250;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    #outputSheet.active { display: flex; }
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid #1a1a1a;
+      position: sticky;
+      top: 0;
+      background: #0a0a0a;
+      z-index: 10;
+    }
+    .output-back {
+      background: none;
+      border: none;
+      color: #7FD41A;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      padding: 8px 0;
+    }
+    .output-mode-label {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+    }
+    .output-mode-label.social { color: #7FD41A; }
+    .output-mode-label.therapy { color: #9b4dff; }
+
+    /* Social output */
+    .social-output-wrap {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .social-image-wrap {
+      width: 100%;
+      max-width: 480px;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #000;
+    }
+    .social-image-wrap img {
+      width: 100%;
+      display: block;
+    }
+    .social-logo-bug {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: rgba(10,10,10,0.7);
+      border: 2px solid rgba(127,212,26,0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .social-caption-box {
+      width: 100%;
+      max-width: 480px;
+      background: #111;
+      border: 1.5px solid #222;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .social-caption-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #555;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .social-caption-text {
+      font-size: 15px;
+      color: #ddd;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .social-hashtags {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #7FD41A;
+      line-height: 1.7;
+    }
+    .social-action-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .social-dl-btn {
+      flex: 1;
+      background: #7FD41A;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+      cursor: pointer;
+    }
+    .social-copy-btn {
+      flex: 0 0 auto;
+      background: #111;
+      color: #7FD41A;
+      border: 2px solid #7FD41A;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    /* Therapy output = canvas */
+    .therapy-output-wrap {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    #therapyCanvas {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      display: block;
+      border-radius: 12px;
+      box-shadow: 0 8px 40px rgba(127,212,26,0.12);
+    }
+    .therapy-action-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .therapy-dl-btn {
+      flex: 1;
+      background: #4a1a8a;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+      cursor: pointer;
+    }
+    .therapy-copy-btn {
+      flex: 0 0 auto;
+      background: #111;
+      color: #9b4dff;
+      border: 2px solid #4a1a8a;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    /* Upload zone in main UI */
+    .scan-upload-zone {
+      width: 100%;
+      background: #111;
+      border: 2px dashed #7FD41A;
+      border-radius: 16px;
+      padding: 36px 20px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      margin-bottom: 16px;
+      transition: background 0.2s;
+    }
+    .scan-upload-zone:active { background: #1a1a1a; }
+    .scan-upload-zone input[type=file] {
+      position: absolute; inset: 0; opacity: 0;
+      cursor: pointer; width: 100%; height: 100%;
+    }
+    .scan-upload-icon { font-size: 44px; margin-bottom: 10px; }
+    .scan-upload-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      color: #7FD41A;
+      letter-spacing: 2px;
+      margin-bottom: 4px;
+    }
+    .scan-upload-sub { font-size: 13px; color: #555; }
+
+    .scan-upload-btn {
+      width: 100%;
+      background: #7FD41A;
+      color: #0a0a0a;
+      border: none;
+      border-radius: 12px;
+      padding: 18px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 24px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+    }
+    .scan-upload-btn.ready { opacity: 1; }
+
+    .scan-status {
+      text-align: center;
+      font-size: 14px;
+      color: #7FD41A;
+      font-weight: 700;
+      letter-spacing: 1px;
+      min-height: 20px;
+      margin-bottom: 8px;
+    }
+
+    /* Scan tab highlight */
+    .tool-tab[data-tool="scan"] .tool-tab-icon { font-size: 26px; }
+  </style>
 </head>
 <body>
 
@@ -23,10 +487,13 @@
     <div class="queue-badge" id="queueBadge" onclick="switchTool('social'); switchTab('queue')">0 queued</div>
   </div>
 
-  <!-- ══════════════ TOOL NAV BAR ══════════════ -->
-  <!-- Icon tabs — one per tool. Active tool highlighted in lime. -->
+  <!-- TOOL NAV -->
   <div class="tool-nav">
-    <div class="tool-tab active" data-tool="social" onclick="switchTool('social')">
+    <div class="tool-tab active" data-tool="scan" onclick="switchTool('scan')">
+      <div class="tool-tab-icon">🔍</div>
+      <div class="tool-tab-label">Scan</div>
+    </div>
+    <div class="tool-tab" data-tool="social" onclick="switchTool('social')">
       <div class="tool-tab-icon">⚡</div>
       <div class="tool-tab-label">Social</div>
     </div>
@@ -38,18 +505,35 @@
       <div class="tool-tab-icon">🎤</div>
       <div class="tool-tab-label">Kitty Speaks</div>
     </div>
-    <div class="tool-tab" data-tool="discovery" onclick="switchTool('discovery')">
-      <div class="tool-tab-icon">🔍</div>
-      <div class="tool-tab-label">Discovery</div>
+  </div>
+
+  <!-- ══ TOOL PANELS ══ -->
+
+  <!-- SCAN PANEL — the new ONE SCAN entry point -->
+  <div class="tool-panel active" id="tool-scan">
+    <div style="padding: 20px;">
+      <div class="scan-upload-zone" id="scanUploadZone">
+        <input type="file" accept="image/*" id="scanPhotoInput" onchange="handleScanPhoto(this)">
+        <div class="scan-upload-icon">📀</div>
+        <div class="scan-upload-title">TAP TO SCAN A RECORD</div>
+        <div class="scan-upload-sub">Camera · Library · AI reads the cover instantly</div>
+      </div>
+      <div class="scan-status" id="scanStatus"></div>
+      <button class="scan-upload-btn" id="scanBtn" onclick="runScan()" disabled>
+        ⚡ ONE SCAN · TWO JOEYS
+      </button>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:4px;">
+        <span style="font-size:12px;color:#333">📸 Social</span>
+        <span style="font-size:12px;color:#333">·</span>
+        <span style="font-size:12px;color:#333">🎴 Therapy</span>
+        <span style="font-size:12px;color:#333">·</span>
+        <span style="font-size:12px;color:#333">One AI call</span>
+      </div>
     </div>
   </div>
 
-  <!-- ══════════════ TOOL PANELS ══════════════ -->
-
-  <!-- ── SOCIAL ENGINE (existing, untouched) ── -->
-  <div class="tool-panel active" id="tool-social">
-
-    <!-- Inner nav tabs -->
+  <!-- SOCIAL ENGINE PANEL -->
+  <div class="tool-panel" id="tool-social">
     <div class="nav-tabs">
       <div class="nav-tab active" data-tab="generate" onclick="switchTab('generate')">✦ Generate</div>
       <div class="nav-tab" data-tab="swipe" onclick="switchTab('swipe')">⟵ Swipe</div>
@@ -59,54 +543,39 @@
     <!-- GENERATE VIEW -->
     <div class="view active" id="view-generate">
       <div class="generate-body" id="generateForm">
-
         <div class="section-label">What are you posting about?</div>
         <div class="post-type-grid">
           <div class="post-type-btn selected" data-type="new_arrival" onclick="selectPostType(this)">
-            <div class="pt-icon">💿</div>
-            <span class="pt-label">New Arrival</span>
+            <div class="pt-icon">💿</div><span class="pt-label">New Arrival</span>
             <div class="pt-desc">Fresh wax just dropped</div>
           </div>
           <div class="post-type-btn" data-type="sale" onclick="selectPostType(this)">
-            <div class="pt-icon">🔥</div>
-            <span class="pt-label">Sale / Deal</span>
+            <div class="pt-icon">🔥</div><span class="pt-label">Sale / Deal</span>
             <div class="pt-desc">Price drop or bundle</div>
           </div>
           <div class="post-type-btn" data-type="vinyl_therapy" onclick="selectPostType(this)">
-            <div class="pt-icon">🎵</div>
-            <span class="pt-label">Vinyl Therapy</span>
+            <div class="pt-icon">🎵</div><span class="pt-label">Vinyl Therapy</span>
             <div class="pt-desc">Story & culture post</div>
           </div>
           <div class="post-type-btn" data-type="spotlight" onclick="selectPostType(this)">
-            <div class="pt-icon">🎸</div>
-            <span class="pt-label">Artist Spotlight</span>
+            <div class="pt-icon">🎸</div><span class="pt-label">Artist Spotlight</span>
             <div class="pt-desc">Hype a record/artist</div>
           </div>
           <div class="post-type-btn" data-type="whatsnew" onclick="selectPostType(this)">
-            <div class="pt-icon">📦</div>
-            <span class="pt-label">Haul Post</span>
+            <div class="pt-icon">📦</div><span class="pt-label">Haul Post</span>
             <div class="pt-desc">Just picked these up</div>
           </div>
           <div class="post-type-btn" data-type="engagement" onclick="selectPostType(this)">
-            <div class="pt-icon">💬</div>
-            <span class="pt-label">Community</span>
+            <div class="pt-icon">💬</div><span class="pt-label">Community</span>
             <div class="pt-desc">Ask / poll the crowd</div>
           </div>
         </div>
-
         <div class="section-label">Platform</div>
         <div class="platform-row">
-          <div class="platform-btn selected" data-plat="facebook" onclick="selectPlatform(this)">
-            <span class="plat-icon">📘</span> Facebook
-          </div>
-          <div class="platform-btn" data-plat="instagram" onclick="selectPlatform(this)">
-            <span class="plat-icon">📸</span> Instagram
-          </div>
-          <div class="platform-btn" data-plat="both" onclick="selectPlatform(this)">
-            <span class="plat-icon">🔗</span> Both
-          </div>
+          <div class="platform-btn selected" data-plat="facebook" onclick="selectPlatform(this)"><span class="plat-icon">📘</span> Facebook</div>
+          <div class="platform-btn" data-plat="instagram" onclick="selectPlatform(this)"><span class="plat-icon">📸</span> Instagram</div>
+          <div class="platform-btn" data-plat="both" onclick="selectPlatform(this)"><span class="plat-icon">🔗</span> Both</div>
         </div>
-
         <div class="section-label">Tone</div>
         <div class="tone-row">
           <div class="tone-btn selected" data-tone="raw" onclick="selectTone(this)">Raw & Real</div>
@@ -115,37 +584,30 @@
           <div class="tone-btn" data-tone="funny" onclick="selectTone(this)">Funny</div>
           <div class="tone-btn" data-tone="educational" onclick="selectTone(this)">Deep Cut</div>
         </div>
-
-        <div class="section-label">Details (optional but makes it better)</div>
+        <div class="section-label">Details (optional)</div>
         <textarea class="input-field" id="detailsInput" rows="3"
-          placeholder="e.g. Just got a sealed copy of Pantera - Vulgar Display of Power on black vinyl. $45. Condition NM+"></textarea>
-
+          placeholder="e.g. Sealed copy of Pantera - Vulgar Display of Power. $45. NM+"></textarea>
         <div class="section-label">How many posts?</div>
         <div class="platform-row" style="margin-bottom:24px">
           <div class="platform-btn selected" data-count="1" onclick="selectCount(this)">1 post</div>
           <div class="platform-btn" data-count="3" onclick="selectCount(this)">3 posts</div>
           <div class="platform-btn" data-count="5" onclick="selectCount(this)">5 posts</div>
         </div>
-
-        <div class="section-label">Photo (optional — snap the record)</div>
+        <div class="section-label">Photo (optional)</div>
         <div class="photo-upload-row">
           <label class="photo-upload-btn" for="photoInput">
             <span id="photoLabel">📷 Add a photo</span>
-            <input type="file" id="photoInput" accept="image/*"
-              onchange="handlePhotoSelect(this)" style="display:none">
+            <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoSelect(this)" style="display:none">
           </label>
           <button class="photo-clear-btn" id="photoClearBtn" onclick="clearPhoto()" style="display:none">✕ Remove</button>
         </div>
         <div id="photoPreview" style="display:none">
           <img id="photoPreviewImg" alt="Selected photo">
         </div>
-
         <button class="generate-btn" id="generateBtn" onclick="generatePosts()">
           <span>⚡</span> GENERATE POSTS
         </button>
       </div>
-
-      <!-- Loading -->
       <div class="loading-state" id="loadingState">
         <div class="spin-record"></div>
         <div class="loading-text" id="loadingText">Writing your posts...</div>
@@ -159,14 +621,14 @@
         <div id="emptySwipe" class="empty-swipe">
           <div class="empty-icon">💿</div>
           <div class="empty-title">Nothing to swipe</div>
-          <div class="empty-sub">Generate some posts first, then come back here to approve or trash them.</div>
-          <button class="empty-cta" onclick="switchTab('generate')">Generate Posts</button>
+          <div class="empty-sub">Scan a record or generate posts first.</div>
+          <button class="empty-cta" onclick="switchTool('scan')">Scan a Record</button>
         </div>
         <div class="card-stack" id="cardStack" style="display:none"></div>
         <div class="swipe-actions" id="swipeActions" style="display:none">
-          <button class="action-btn btn-reject" onclick="voteCard('reject')" title="Trash it">✕</button>
-          <button class="action-btn btn-regen" onclick="regenCard()" title="Regenerate">↻</button>
-          <button class="action-btn btn-approve" onclick="voteCard('approve')" title="Queue it">✓</button>
+          <button class="action-btn btn-reject" onclick="voteCard('reject')">✕</button>
+          <button class="action-btn btn-regen" onclick="regenCard()">↻</button>
+          <button class="action-btn btn-approve" onclick="voteCard('approve')">✓</button>
         </div>
         <div class="swipe-hint" id="swipeHint" style="display:none">Swipe right to queue · Swipe left to trash</div>
       </div>
@@ -183,90 +645,25 @@
         <div class="queue-list" id="queueList"></div>
       </div>
     </div>
-
   </div><!-- /tool-social -->
 
-  <!-- ── WHAT'S SPINNING (iframe) ── -->
+  <!-- WHAT'S SPINNING -->
   <div class="tool-panel" id="tool-spinning">
     <div class="iframe-toolbar">
       <span class="iframe-tool-name">💿 What's Spinning</span>
       <a class="iframe-open-btn" href="https://korndogrecords.com/korndog-spinning-generator.html" target="_blank">Open ↗</a>
     </div>
-    <iframe
-      id="iframe-spinning"
-      class="tool-iframe"
-      src=""
-      data-src="https://korndogrecords.com/korndog-spinning-generator.html"
-      title="What's Spinning Generator"
-      loading="lazy">
-    </iframe>
+    <iframe id="iframe-spinning" class="tool-iframe" src="" data-src="https://korndogrecords.com/korndog-spinning-generator.html" title="What's Spinning Generator" loading="lazy"></iframe>
   </div>
 
-  <!-- ── KITTY SPEAKS (iframe) ── -->
+  <!-- KITTY SPEAKS -->
   <div class="tool-panel" id="tool-kitty">
     <div class="iframe-toolbar">
       <span class="iframe-tool-name">🎤 Kitty Speaks</span>
       <a class="iframe-open-btn" href="https://korndogrecords.com/korndog-spotlight.html" target="_blank">Open ↗</a>
     </div>
-    <iframe
-      id="iframe-kitty"
-      class="tool-iframe"
-      src=""
-      data-src="https://korndogrecords.com/korndog-spotlight.html"
-      title="Kitty Speaks Generator"
-      loading="lazy">
-    </iframe>
+    <iframe id="iframe-kitty" class="tool-iframe" src="" data-src="https://korndogrecords.com/korndog-spotlight.html" title="Kitty Speaks Generator" loading="lazy"></iframe>
   </div>
-
-  <!-- ── ARTIST DISCOVERY ── -->
-  <div class="tool-panel" id="tool-discovery">
-    <div class="discovery-body">
-
-      <div class="section-label">Search an Artist</div>
-      <div class="discovery-search-row">
-        <input class="input-field discovery-input" id="discoveryInput" type="text"
-          placeholder="e.g. Pantera, Sleep Token, Nirvana..."
-          onkeydown="if(event.key==='Enter') searchArtist()">
-        <button class="discovery-search-btn" onclick="searchArtist()">🔍</button>
-      </div>
-
-      <!-- Loading -->
-      <div class="discovery-loading" id="discoveryLoading" style="display:none">
-        <div class="spin-record" style="width:50px;height:50px"></div>
-        <div class="loading-text">Digging through the crates...</div>
-      </div>
-
-      <!-- Results -->
-      <div id="discoveryResults" style="display:none">
-        <div class="section-label" style="margin-top:20px" id="discoveryResultsLabel">Results</div>
-        <div class="discovery-artist-card" id="discoveryArtistCard"></div>
-
-        <div class="section-label" style="margin-top:20px">Discogs Inventory</div>
-        <div class="discovery-inventory" id="discoveryInventory"></div>
-
-        <div class="section-label" style="margin-top:20px">Generate a Post</div>
-        <div class="discovery-post-types">
-          <button class="discovery-post-btn" onclick="sendToSocial('spotlight')">
-            🎸 Artist Spotlight
-          </button>
-          <button class="discovery-post-btn" onclick="sendToSocial('vinyl_therapy')">
-            🎵 Vinyl Therapy Post
-          </button>
-          <button class="discovery-post-btn" onclick="sendToSocial('new_arrival')">
-            💿 New Arrival Post
-          </button>
-        </div>
-      </div>
-
-      <!-- Empty state -->
-      <div class="discovery-empty" id="discoveryEmpty">
-        <div style="font-size:48px;margin-bottom:16px">🔍</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--lime);letter-spacing:2px">Find Your Artist</div>
-        <div style="font-size:13px;color:var(--text-dim);margin-top:8px">Search an artist to see their Discogs info and generate a post straight into the Social Engine.</div>
-      </div>
-
-    </div>
-  </div><!-- /tool-discovery -->
 
   <!-- EDIT MODAL -->
   <div class="modal-overlay" id="editModal">
@@ -284,9 +681,98 @@
   <!-- TOAST -->
   <div class="toast" id="toast"></div>
 
+  <!-- ══ SCAN LOADING OVERLAY ══ -->
+  <div id="scanLoading">
+    <div class="spin-record" style="width:80px;height:80px;"></div>
+    <div class="scan-loading-text" id="scanLoadingText">READING THE RECORD...</div>
+    <div class="scan-loading-sub">One scan · Two Joeys · Zero wasted time</div>
+  </div>
+
+  <!-- ══ RESULTS LAYER ══ -->
+  <div id="scanLayer">
+    <div class="scan-header">
+      <button class="scan-back" onclick="closeScanLayer()">← Back</button>
+      <div class="scan-title">SCAN RESULTS</div>
+      <div class="scan-session" id="scanSessionLabel">#001</div>
+    </div>
+    <img id="scanThumb" class="scan-album-thumb" src="" alt="">
+    <div class="scan-album-info">
+      <div class="scan-artist" id="scanArtist">ARTIST</div>
+      <div class="scan-album-title" id="scanAlbumTitle">Album Title</div>
+      <div class="scan-meta" id="scanMeta">Genre · Era · Mood</div>
+    </div>
+    <div class="scan-score-row">
+      <div class="scan-score-chip">
+        <div class="chip-label">Therapy Score</div>
+        <div class="chip-val" id="scanScore">—</div>
+      </div>
+      <div class="scan-score-chip">
+        <div class="chip-label">Kitty Pick</div>
+        <div class="chip-val" id="scanKitty" style="font-size:14px;padding-top:2px">—</div>
+      </div>
+      <div class="scan-score-chip">
+        <div class="chip-label">Vibe</div>
+        <div class="chip-val" id="scanVibe" style="font-size:13px;padding-top:2px">—</div>
+      </div>
+    </div>
+    <div class="scan-joey-preview" id="scanJoeyPreview">Joey's take on this one...</div>
+    <div class="scan-choose-label">Choose your output</div>
+    <div class="scan-mode-row">
+      <div class="scan-mode-btn social-btn" onclick="openOutput('social')">
+        <div class="scan-mode-icon">📸</div>
+        <div class="scan-mode-title">SOCIAL</div>
+        <div class="scan-mode-desc">Share the moment.<br>Built to stop scrolling.</div>
+      </div>
+      <div class="scan-mode-btn therapy-btn" onclick="openOutput('therapy')">
+        <div class="scan-mode-icon">🎴</div>
+        <div class="scan-mode-title">THERAPY</div>
+        <div class="scan-mode-desc">Save the memory.<br>Collectible slab card.</div>
+      </div>
+    </div>
+    <div class="scan-edit-row">
+      <div class="scan-edit-label">Wrong info? Edit fields or rescan.</div>
+      <button class="scan-edit-btn" onclick="openEditFields()">✏️ Edit</button>
+    </div>
+  </div>
+
+  <!-- ══ OUTPUT SHEET ══ -->
+  <div id="outputSheet">
+    <div class="output-header">
+      <button class="output-back" onclick="closeOutput()">← Back</button>
+      <div class="output-mode-label" id="outputModeLabel">SOCIAL</div>
+      <div style="width:60px"></div>
+    </div>
+
+    <!-- Social output -->
+    <div class="social-output-wrap" id="socialOutput" style="display:none">
+      <div class="social-image-wrap" id="socialImageWrap">
+        <img id="socialAlbumImg" src="" alt="">
+        <div class="social-logo-bug">🐱</div>
+      </div>
+      <div class="social-caption-box">
+        <div class="social-caption-label">Caption</div>
+        <div class="social-caption-text" id="socialCaptionText"></div>
+        <div class="social-hashtags" id="socialHashtags"></div>
+      </div>
+      <div class="social-action-row">
+        <button class="social-dl-btn" onclick="downloadSocial()">📥 SAVE IMAGE</button>
+        <button class="social-copy-btn" onclick="copySocialCaption()">📋 COPY</button>
+      </div>
+    </div>
+
+    <!-- Therapy output -->
+    <div class="therapy-output-wrap" id="therapyOutput" style="display:none">
+      <canvas id="therapyCanvas"></canvas>
+      <div class="therapy-action-row">
+        <button class="therapy-dl-btn" onclick="downloadTherapy()">📥 DOWNLOAD CARD</button>
+        <button class="therapy-copy-btn" onclick="copyTherapyCaption()">📋 COPY</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
   <script>
-  // ── TOOL NAV ─────────────────────────────────────────────
+  // ── TOOL NAV ──────────────────────────────────────────────
   function switchTool(tool) {
     document.querySelectorAll('.tool-tab').forEach(t => {
       t.classList.toggle('active', t.dataset.tool === tool);
@@ -294,121 +780,8 @@
     document.querySelectorAll('.tool-panel').forEach(p => {
       p.classList.toggle('active', p.id === 'tool-' + tool);
     });
-
-    // Lazy-load iframes on first visit
     const iframe = document.querySelector(`#tool-${tool} iframe`);
-    if (iframe && !iframe.src && iframe.dataset.src) {
-      iframe.src = iframe.dataset.src;
-    }
-  }
-
-  // ── DISCOVERY ────────────────────────────────────────────
-  let discoveryArtist = null; // holds current artist name + data
-
-  async function searchArtist() {
-    const query = document.getElementById('discoveryInput').value.trim();
-    if (!query) return;
-
-    document.getElementById('discoveryEmpty').style.display   = 'none';
-    document.getElementById('discoveryResults').style.display = 'none';
-    document.getElementById('discoveryLoading').style.display = 'flex';
-
-    try {
-      // Search Discogs for artist
-      const res  = await fetch(`https://api.discogs.com/database/search?q=${encodeURIComponent(query)}&type=artist&per_page=1`, {
-        headers: { 'User-Agent': 'KornDogRecords/1.0' }
-      });
-      const data = await res.json();
-      const artist = data?.results?.[0];
-
-      if (!artist) {
-        document.getElementById('discoveryLoading').style.display = 'none';
-        document.getElementById('discoveryEmpty').style.display   = 'flex';
-        document.getElementById('discoveryEmpty').querySelector('div:last-child').textContent = 'No results found. Try a different spelling.';
-        return;
-      }
-
-      discoveryArtist = { name: artist.title, thumb: artist.thumb, id: artist.id };
-
-      // Render artist card
-      document.getElementById('discoveryArtistCard').innerHTML = `
-        <div class="d-artist-row">
-          ${artist.thumb ? `<img class="d-artist-thumb" src="${artist.thumb}" alt="${artist.title}">` : '<div class="d-artist-thumb-placeholder">🎸</div>'}
-          <div>
-            <div class="d-artist-name">${artist.title}</div>
-            <div class="d-artist-meta">Discogs Artist</div>
-          </div>
-        </div>
-      `;
-
-      // Search Discogs for releases by this artist (simulate inventory)
-      const relRes  = await fetch(`https://api.discogs.com/database/search?q=${encodeURIComponent(query)}&type=release&per_page=5`, {
-        headers: { 'User-Agent': 'KornDogRecords/1.0' }
-      });
-      const relData = await relRes.json();
-      const releases = relData?.results || [];
-
-      const invEl = document.getElementById('discoveryInventory');
-      if (releases.length === 0) {
-        invEl.innerHTML = '<div style="color:var(--text-dim);font-size:13px">No releases found on Discogs.</div>';
-      } else {
-        invEl.innerHTML = releases.map(r => `
-          <div class="d-release-row" onclick="selectRelease('${escHtmlInline(r.title)}', '${escHtmlInline(r.year||'')}', '${escHtmlInline(r.format?.[0]||'Vinyl')}')">
-            ${r.thumb ? `<img class="d-release-thumb" src="${r.thumb}" alt="">` : '<div class="d-release-thumb-placeholder">💿</div>'}
-            <div class="d-release-info">
-              <div class="d-release-title">${r.title}</div>
-              <div class="d-release-meta">${r.year || ''} ${r.format?.[0] ? '· ' + r.format[0] : ''} ${r.label?.[0] ? '· ' + r.label[0] : ''}</div>
-            </div>
-            <div class="d-release-arrow">→</div>
-          </div>
-        `).join('');
-      }
-
-      document.getElementById('discoveryLoading').style.display  = 'none';
-      document.getElementById('discoveryResults').style.display  = 'block';
-
-    } catch (err) {
-      console.error('[discovery]', err);
-      document.getElementById('discoveryLoading').style.display = 'none';
-      document.getElementById('discoveryEmpty').style.display   = 'flex';
-    }
-  }
-
-  // Track selected release
-  let selectedRelease = null;
-  function selectRelease(title, year, format) {
-    selectedRelease = { title, year, format };
-    // Highlight selected
-    document.querySelectorAll('.d-release-row').forEach(r => r.classList.remove('selected'));
-    event.currentTarget.classList.add('selected');
-    showToast(`✦ ${title} selected`);
-  }
-
-  function escHtmlInline(str) {
-    return (str || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
-  }
-
-  // ── SEND TO SOCIAL ENGINE ─────────────────────────────────
-  // This is the key connection — Discovery → Social Engine
-  function sendToSocial(postType) {
-    if (!discoveryArtist) return;
-
-    const artist  = discoveryArtist.name;
-    const release = selectedRelease;
-    let details   = `Artist: ${artist}`;
-    if (release) {
-      details += `\nAlbum: ${release.title}`;
-      if (release.year)   details += `\nYear: ${release.year}`;
-      if (release.format) details += `\nFormat: ${release.format}`;
-    }
-
-    // Switch to Social Engine
-    switchTool('social');
-
-    // Pre-fill the generate form
-    prefillGenerate(details, postType);
-
-    showToast('✦ Loaded into Social Engine!');
+    if (iframe && !iframe.src && iframe.dataset.src) iframe.src = iframe.dataset.src;
   }
   </script>
 </body>
