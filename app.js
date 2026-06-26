@@ -248,15 +248,21 @@ function renderSocialOutput() {
 }
 
 async function downloadSocial() {
-  // Download the clean album art with only a tiny logo bug baked in
   const r = _scanResult;
+
+  // Confirm session number before building filename
+  if (!_sessionConfirmed) {
+    _confirmScanSession();
+    _sessionConfirmed = true;
+  }
+  const sessStr = String(_scanSessNum).padStart(3, '0');
 
   const W = 1080, H = 1080;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
 
-  // Draw album art cover-fill
+  // Draw album art — cover fill, centered
   await new Promise(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -269,28 +275,36 @@ async function downloadSocial() {
     img.src = _scanPhoto.dataUrl;
   });
 
-  // Tiny KornDog watermark bug — bottom right corner only
-  ctx.fillStyle = 'rgba(10,10,10,0.55)';
+  // Tiny KornDog watermark bug — bottom right only, never covers art
+  ctx.fillStyle = 'rgba(10,10,10,0.6)';
   ctx.beginPath();
-  ctx.arc(W - 44, H - 44, 36, 0, Math.PI * 2);
+  ctx.arc(W - 46, H - 46, 38, 0, Math.PI * 2);
   ctx.fill();
-  ctx.font      = '28px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('🐱', W - 44, H - 34);
+  ctx.font = '30px Arial'; ctx.textAlign = 'center';
+  ctx.fillText('🐱', W - 46, H - 36);
 
-  // Confirm session on first download
-  if (!_sessionConfirmed) {
-    _confirmScanSession();
-    _sessionConfirmed = true;
+  // korndogrecords.com micro watermark bottom left
+  ctx.fillStyle = 'rgba(127,212,26,0.5)';
+  ctx.font = '18px Arial'; ctx.textAlign = 'left';
+  ctx.fillText('korndogrecords.com', 20, H - 18);
+
+  let dataUrl;
+  try { dataUrl = cv.toDataURL('image/jpeg', 0.93); }
+  catch (e) { showToast('❌ Download failed: ' + e.message); return; }
+
+  const fname = `korndog-social-${sessStr}-${(r.artist || 'record').toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,25)}.jpg`;
+
+  // Mobile-safe download: try anchor click, fallback to opening in new tab
+  try {
+    const a = document.createElement('a');
+    a.href = dataUrl; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  } catch(e) {
+    // Fallback for Android WebView — open in new tab so user can long-press save
+    const w = window.open(); w.document.write(`<img src="${dataUrl}" style="max-width:100%">`);
   }
 
-  const dataUrl = cv.toDataURL('image/jpeg', 0.93);
-  const a = document.createElement('a');
-  a.href     = dataUrl;
-  a.download = `korndog-social-${_getScanSession()}-${(r.artist || 'record').toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,25)}.jpg`;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-
-  // Copy caption automatically
+  // Copy caption
   const caption = (r.joeySocial || '') + '\n\n' + (r.hashtags || '');
   copySilent(caption);
   showToast('📥 Image saved! Caption copied.');
@@ -317,7 +331,7 @@ async function renderTherapyCard() {
   const IX       = SLAB_PAD + 14;
   const IW       = W - (SLAB_PAD + 14) * 2;
   const LABEL_H  = 138;
-  const PHOTO_H  = 520;
+  const PHOTO_H  = 600; // taller = more album art visible
   const STATS_H  = 260;
   const FOOT_H   = 70;
   const GAP      = 8;
@@ -450,11 +464,25 @@ async function renderTherapyCard() {
   if (photoImg) {
     const pX=IX+CARD_PAD, pY=PHOTO_Y+CARD_PAD;
     const pW=IW-CARD_PAD*2, pH=PHOTO_H-CARD_PAD*2;
-    const scale=Math.max(pW/photoImg.width, pH/photoImg.height);
-    const sw=photoImg.width*scale, sh=photoImg.height*scale;
+
+    // Contain: show 90%+ of album art — fill frame width, let height be natural
+    // Use Math.min (contain) so the full cover is visible inside the gold border
+    const scaleContain = Math.min(pW / photoImg.width, pH / photoImg.height);
+    // If contain leaves big letterbox gaps, blend toward cover but cap at 1.08x
+    const scaleCover   = Math.max(pW / photoImg.width, pH / photoImg.height);
+    const scale        = scaleCover / scaleContain <= 1.25
+      ? scaleCover   // art fills frame cleanly with minimal cropping
+      : scaleContain; // very portrait/landscape art — use contain to show full art
+
+    const sw = photoImg.width  * scale;
+    const sh = photoImg.height * scale;
+
+    // Dark fill behind any letterbox areas
+    ctx.fillStyle = '#0a0a0a';
     ctx.save();
     roundRect(pX,pY,pW,pH,6); ctx.clip();
-    ctx.drawImage(photoImg, pX+(pW-sw)/2, pY+(pH-sh)*0.15, sw, sh);
+    ctx.fillRect(pX,pY,pW,pH);
+    ctx.drawImage(photoImg, pX+(pW-sw)/2, pY+(pH-sh)/2, sw, sh);
     ctx.restore();
   } else {
     ctx.fillStyle='#1a1a1a';
@@ -483,8 +511,8 @@ async function renderTherapyCard() {
     ctx.stroke();
   });
 
-  // COL 1 — Genre / Mood / Era
-  const C1X=IX+14;
+  // COL 1 — Genre / Mood / Era — extra padding clears slab border
+  const C1X=IX+22;
   function statBlock(label,value,x,y,maxW) {
     ctx.fillStyle='#666'; ctx.font='bold 11px Arial, sans-serif'; ctx.textAlign='left';
     ctx.fillText(label,x,y);
