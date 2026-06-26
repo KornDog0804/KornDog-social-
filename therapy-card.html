@@ -16,9 +16,7 @@
     --white:  #f0f0f0;
     --grey:   #888888;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
   body {
     background: #0d0d0d;
     color: var(--white);
@@ -29,220 +27,137 @@
     align-items: center;
     padding: 20px 16px 40px;
   }
-
-  /* ── Header ── */
   .app-header {
-    width: 100%;
-    max-width: 480px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
+    width: 100%; max-width: 480px;
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 24px; padding-bottom: 16px;
     border-bottom: 2px solid var(--lime);
   }
-  .app-header h1 {
-    font-size: 22px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    color: var(--lime);
-    line-height: 1.1;
-  }
-  .app-header p {
-    font-size: 12px;
-    color: var(--grey);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-
-  /* ── Form ── */
-  .form-section {
-    width: 100%;
-    max-width: 480px;
-  }
-
+  .app-header h1 { font-size: 22px; font-weight: 900; letter-spacing: 1px; color: var(--lime); line-height: 1.1; }
+  .app-header p  { font-size: 12px; color: var(--grey); letter-spacing: 1px; text-transform: uppercase; }
+  .form-section  { width: 100%; max-width: 480px; }
   .photo-drop {
-    width: 100%;
-    background: var(--panel);
-    border: 2px dashed var(--lime);
-    border-radius: 12px;
-    padding: 32px 20px;
-    text-align: center;
-    cursor: pointer;
-    margin-bottom: 16px;
-    position: relative;
-    transition: background 0.2s;
+    width: 100%; background: var(--panel);
+    border: 2px dashed var(--lime); border-radius: 12px;
+    padding: 32px 20px; text-align: center; cursor: pointer;
+    margin-bottom: 16px; position: relative; transition: background 0.2s;
   }
   .photo-drop:active { background: #222; }
-  .photo-drop input[type=file] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .photo-drop .drop-icon { font-size: 40px; margin-bottom: 8px; }
-  .photo-drop .drop-label {
-    font-size: 18px; font-weight: 700; color: var(--lime); letter-spacing: 1px;
-  }
-  .photo-drop .drop-sub { font-size: 13px; color: var(--grey); margin-top: 4px; }
-
+  .photo-drop input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+  .photo-drop .drop-icon  { font-size: 40px; margin-bottom: 8px; }
+  .photo-drop .drop-label { font-size: 18px; font-weight: 700; color: var(--lime); letter-spacing: 1px; }
+  .photo-drop .drop-sub   { font-size: 13px; color: var(--grey); margin-top: 4px; }
   #photoThumb {
-    width: 100%;
-    max-height: 200px;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 2px solid var(--lime);
-    display: none;
-    margin-bottom: 16px;
+    width: 100%; max-height: 200px; object-fit: cover;
+    border-radius: 8px; border: 2px solid var(--lime);
+    display: none; margin-bottom: 16px;
   }
-
   .generate-btn {
-    width: 100%;
-    background: var(--lime);
-    color: #0a0a0a;
-    border: none;
-    border-radius: 12px;
-    padding: 18px;
-    font-size: 20px;
-    font-weight: 900;
-    letter-spacing: 2px;
-    cursor: pointer;
-    text-transform: uppercase;
-    margin-bottom: 24px;
-    transition: opacity 0.2s;
+    width: 100%; background: var(--lime); color: #0a0a0a;
+    border: none; border-radius: 12px; padding: 18px;
+    font-size: 20px; font-weight: 900; letter-spacing: 2px;
+    cursor: pointer; text-transform: uppercase;
+    margin-bottom: 24px; transition: opacity 0.2s;
   }
   .generate-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
   .status-msg {
-    text-align: center;
-    color: var(--lime);
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    min-height: 24px;
-    margin-bottom: 16px;
+    text-align: center; color: var(--lime);
+    font-size: 15px; font-weight: 700; letter-spacing: 1px;
+    min-height: 24px; margin-bottom: 16px;
   }
 
-  /* ── Editable Fields (shown after AI fills them) ── */
-  .fields-section {
-    display: none;
+  /* ── Crop Screen ── */
+  #cropScreen {
+    display: none; width: 100%; max-width: 480px;
+    margin-bottom: 16px; flex-direction: column;
+    align-items: center; gap: 12px;
+  }
+  #cropScreen.visible { display: flex; }
+  #cropScreen h2 {
+    font-size: 14px; font-weight: 700; color: var(--lime);
+    letter-spacing: 2px; text-transform: uppercase; text-align: center;
+  }
+  #cropScreen p { font-size: 12px; color: var(--grey); text-align: center; margin-top: -6px; }
+  #cropViewport {
     width: 100%;
-    max-width: 480px;
-    margin-bottom: 20px;
+    /* ratio matches IW/PHOTO_H: IW=1012, PHOTO_H=580 → ~56.3% */
+    aspect-ratio: 1012 / 580;
+    background: #000; border: 2px solid var(--gold);
+    border-radius: 8px; overflow: hidden;
+    position: relative; cursor: grab; touch-action: none; user-select: none;
   }
+  #cropViewport:active { cursor: grabbing; }
+  #cropImage { position: absolute; transform-origin: 0 0; pointer-events: none; image-rendering: auto; }
+  .crop-controls { display: flex; gap: 8px; width: 100%; justify-content: center; flex-wrap: wrap; }
+  .crop-btn {
+    background: var(--panel); color: var(--white);
+    border: 1.5px solid #333; border-radius: 8px;
+    padding: 10px 18px; font-size: 14px; font-weight: 700;
+    cursor: pointer; letter-spacing: 1px; transition: border-color 0.2s;
+  }
+  .crop-btn:hover { border-color: var(--lime); color: var(--lime); }
+  .crop-btn.primary { background: var(--lime); color: #0a0a0a; border-color: var(--lime); flex: 1; }
+
+  /* ── Fields ── */
+  .fields-section { display: none; width: 100%; max-width: 480px; margin-bottom: 20px; }
   .fields-section.visible { display: block; }
-
-  .fields-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
   .field-full { grid-column: 1 / -1; }
-
   .field-group label {
-    display: block;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--lime);
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 4px;
+    display: block; font-size: 11px; font-weight: 700;
+    color: var(--lime); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px;
   }
   .field-group input,
   .field-group select,
   .field-group textarea {
-    width: 100%;
-    background: var(--panel);
-    border: 1.5px solid #333;
-    border-radius: 8px;
-    color: var(--white);
-    font-size: 14px;
-    padding: 10px 12px;
-    font-family: Arial, sans-serif;
-    outline: none;
-    transition: border-color 0.2s;
+    width: 100%; background: var(--panel); border: 1.5px solid #333;
+    border-radius: 8px; color: var(--white); font-size: 14px;
+    padding: 10px 12px; font-family: Arial, sans-serif; outline: none; transition: border-color 0.2s;
   }
   .field-group input:focus,
   .field-group select:focus,
   .field-group textarea:focus { border-color: var(--lime); }
   .field-group select option { background: #1a1a1a; }
   .field-group textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
-
-  .action-btns {
-    display: flex;
-    gap: 10px;
-    margin-top: 16px;
-  }
+  .action-btns { display: flex; gap: 10px; margin-top: 16px; }
   .btn-download {
-    flex: 1;
-    background: var(--lime);
-    color: #0a0a0a;
-    border: none;
-    border-radius: 10px;
-    padding: 16px;
-    font-size: 16px;
-    font-weight: 900;
-    letter-spacing: 1px;
-    cursor: pointer;
-    text-transform: uppercase;
+    flex: 1; background: var(--lime); color: #0a0a0a;
+    border: none; border-radius: 10px; padding: 16px;
+    font-size: 16px; font-weight: 900; letter-spacing: 1px;
+    cursor: pointer; text-transform: uppercase;
   }
   .btn-regen {
-    flex: 0 0 auto;
-    background: var(--panel);
-    color: var(--lime);
-    border: 2px solid var(--lime);
-    border-radius: 10px;
-    padding: 16px 20px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
+    flex: 0 0 auto; background: var(--panel); color: var(--lime);
+    border: 2px solid var(--lime); border-radius: 10px;
+    padding: 16px 20px; font-size: 16px; font-weight: 700; cursor: pointer;
   }
 
-  /* ── Preview Canvas ── */
+  /* ── Preview ── */
   #previewWrap {
-    width: 100%;
-    max-width: 480px;
-    margin-bottom: 20px;
-    display: none;
-    border-radius: 12px;
-    overflow: hidden;
+    width: 100%; max-width: 480px; margin-bottom: 20px;
+    display: none; border-radius: 12px; overflow: hidden;
     box-shadow: 0 8px 40px rgba(127,212,26,0.15);
   }
   #previewWrap.visible { display: block; }
-  #previewCanvas {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
+  #previewCanvas { width: 100%; height: auto; display: block; }
 
   /* ── Live Preview Banner ── */
   #livePreviewBanner {
-    display: none;
-    width: 100%;
-    max-width: 480px;
-    background: rgba(127,212,26,0.12);
-    border: 1px solid var(--lime);
-    border-radius: 8px;
-    padding: 10px 16px;
-    margin-bottom: 12px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    color: var(--lime);
-    text-transform: uppercase;
+    display: none; width: 100%; max-width: 480px;
+    background: rgba(127,212,26,0.12); border: 1px solid var(--lime);
+    border-radius: 8px; padding: 10px 16px; margin-bottom: 12px;
+    text-align: center; font-size: 12px; font-weight: 700;
+    letter-spacing: 1px; color: var(--lime); text-transform: uppercase;
   }
   #livePreviewBanner span {
-    color: #888;
-    font-weight: 400;
-    display: block;
-    font-size: 11px;
-    letter-spacing: 0;
-    margin-top: 3px;
-    text-transform: none;
+    color: #888; font-weight: 400; display: block;
+    font-size: 11px; letter-spacing: 0; margin-top: 3px; text-transform: none;
   }
 
   /* ── Toast ── */
   #toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
     background: var(--lime); color: #0a0a0a;
     padding: 12px 24px; border-radius: 100px;
     font-weight: 700; font-size: 15px; letter-spacing: 1px;
@@ -261,24 +176,35 @@
 </header>
 
 <div class="form-section">
-  <!-- Photo upload -->
   <div class="photo-drop" id="photoDrop">
     <input type="file" accept="image/*" id="photoInput" onchange="handlePhoto(this)">
     <div class="drop-icon">📷</div>
     <div class="drop-label">TAP TO ADD RECORD PHOTO</div>
     <div class="drop-sub">Camera · Photo library · AI reads the cover automatically</div>
   </div>
-
   <img id="photoThumb" alt="Record photo">
-
   <div class="status-msg" id="statusMsg"></div>
-
   <button class="generate-btn" id="generateBtn" onclick="generateCard()" disabled>
     ⚡ GENERATE THERAPY CARD
   </button>
 </div>
 
-<!-- Editable fields — shown after AI fills them -->
+<!-- Crop Screen -->
+<div id="cropScreen">
+  <h2>✂️ CROP YOUR RECORD PHOTO</h2>
+  <p>Drag to reposition · Pinch or use buttons to zoom</p>
+  <div id="cropViewport">
+    <img id="cropImage" alt="">
+  </div>
+  <div class="crop-controls">
+    <button class="crop-btn" onclick="cropZoom(-0.15)">－ Zoom Out</button>
+    <button class="crop-btn" onclick="cropZoom(0.15)">＋ Zoom In</button>
+    <button class="crop-btn" onclick="cropReset()">↺ Reset</button>
+    <button class="crop-btn primary" onclick="applyCrop()">✓ USE THIS CROP</button>
+  </div>
+</div>
+
+<!-- Editable fields -->
 <div class="fields-section" id="fieldsSection">
   <div class="fields-grid">
     <div class="field-group field-full">
@@ -346,14 +272,12 @@
       </select>
     </div>
   </div>
-
   <div class="action-btns">
     <button class="btn-download" onclick="downloadCard()">📥 DOWNLOAD CARD</button>
     <button class="btn-regen" onclick="regenCard()">↻ REDO</button>
   </div>
 </div>
 
-<!-- Canvas preview -->
 <div id="livePreviewBanner">
   ⚡ LIVE AI PREVIEW MODE
   <span>Session number will not lock until you tap Download Card.</span>
@@ -366,87 +290,302 @@
 <div id="toast"></div>
 
 <script>
-// ── AI mode flags ────────────────────────────────────────────
-// Set USE_MOCK_AI = true for free UI testing (no API calls)
-// Set USE_MOCK_AI = false for live AI mode
+// ── AI mode flags ─────────────────────────────────────────────
+// USE_MOCK_AI = true  → free UI testing, zero API calls
+// USE_MOCK_AI = false → live mode
 const USE_MOCK_AI = false;
 const LIVE_AI_PREVIEW_ONLY = true; // session only locks on Download
 
-// ── State ─────────────────────────────────────────────────────
-let photoBase64    = null;
-let photoDataUrl   = null;
-// sessionNum = last confirmed/saved number.
-// currentSessStr = session shown on the preview card (next number, not yet saved).
-// Only increments + saves to localStorage when user actually downloads.
+// ── App state ─────────────────────────────────────────────────
+let photoBase64    = null;   // base64 of the cropped JPEG — null until applyCrop() succeeds
+let photoDataUrl   = null;   // data: URL of cropped image
+let photoMimeType  = 'image/jpeg';
+
 let sessionNum     = parseInt(localStorage.getItem('kd_therapy_session') || '0', 10);
-let currentSessStr = String(sessionNum + 1).padStart(3, '0');
-let photoMimeType  = 'image/jpeg'; // updated when photo is selected
+let currentSessStr = String(sessionNum + 1).padStart(3, '0'); // preview number, not yet locked
+
+// ── Crop state ────────────────────────────────────────────────
+let _cropImg        = null;  // Image element used for cropping
+let _cropScale      = 1;
+let _cropX          = 0;     // image offset within viewport (px)
+let _cropY          = 0;
+let _cropVW         = 0;     // viewport size in px
+let _cropVH         = 0;
+let _cropDragging   = false;
+let _cropLastX      = 0;
+let _cropLastY      = 0;
+let _cropPinchDist  = 0;
+let _activeObjectUrl = null; // kept alive until applyCrop() or regenCard()
+let _cropListenersAttached  = false; // prevent duplicate window listeners
+let _downloadInProgress     = false;  // prevent double-tap download
+
+// ── Global crop mouse handlers (attached once to window) ──────
+function _onCropMouseMove(e) {
+  if (!_cropDragging) return;
+  _cropX += e.clientX - _cropLastX;
+  _cropY += e.clientY - _cropLastY;
+  _cropLastX = e.clientX;
+  _cropLastY = e.clientY;
+  clampCrop();
+  _applyCropTransform();
+}
+function _onCropMouseUp() { _cropDragging = false; }
+
+// ── Utility ───────────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('statusMsg').textContent = msg;
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function safeRevokeObjectUrl() {
+  if (_activeObjectUrl) {
+    try { URL.revokeObjectURL(_activeObjectUrl); } catch (_) {}
+    _activeObjectUrl = null;
+  }
+}
 
 // ── Photo handling ────────────────────────────────────────────
 function handlePhoto(input) {
   const file = input.files?.[0];
   if (!file) { setStatus('No file selected — try again.'); return; }
 
-  photoMimeType = file.type || 'image/jpeg';
+  // Ensure Generate stays disabled until applyCrop() succeeds
+  document.getElementById('generateBtn').disabled = true;
+  photoBase64 = null;
+  photoDataUrl = null;
+  photoMimeType = 'image/jpeg';
   setStatus('⏳ Loading photo...');
 
-  // Use createObjectURL as primary — faster and avoids FileReader bugs on Android
-  // with Google Photos content URIs. Fall back to FileReader if it fails.
-  const objectUrl = URL.createObjectURL(file);
-  const testImg   = new Image();
+  // Keep objectUrl alive — will revoke in applyCrop() or regenCard()
+  safeRevokeObjectUrl();
+  _activeObjectUrl = URL.createObjectURL(file);
 
-  testImg.onload = () => {
-    // Object URL worked — now compress via canvas and extract base64
-    const MAX_DIM = 1280;
-    let { naturalWidth: w, naturalHeight: h } = testImg;
-    if (w > MAX_DIM || h > MAX_DIM) {
-      const ratio = Math.min(MAX_DIM / w, MAX_DIM / h);
-      w = Math.round(w * ratio);
-      h = Math.round(h * ratio);
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    canvas.getContext('2d').drawImage(testImg, 0, 0, w, h);
-    URL.revokeObjectURL(objectUrl);
-
-    photoDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-    photoBase64  = photoDataUrl.split(',')[1];
-    photoMimeType = 'image/jpeg';
-    showPhoto(photoDataUrl);
+  const img = new Image();
+  img.onload = () => {
+    _cropImg = img;
+    // Note: do NOT revoke _activeObjectUrl here — image still needs it for display
+    openCropScreen(img);
   };
-
-  testImg.onerror = () => {
-    // Object URL failed — fall back to FileReader
-    URL.revokeObjectURL(objectUrl);
+  img.onerror = () => {
+    // objectUrl failed — fall back to FileReader (e.g. Google Photos URI)
+    safeRevokeObjectUrl();
     const reader = new FileReader();
     reader.onload = e => {
-      photoDataUrl = e.target.result;
-      photoBase64  = photoDataUrl.split(',')[1];
-      showPhoto(photoDataUrl);
+      const img2 = new Image();
+      img2.onload = () => { _cropImg = img2; openCropScreen(img2); };
+      img2.onerror = () => setStatus('❌ Could not load photo. Try a different image.');
+      img2.src = e.target.result;
     };
-    reader.onerror = () => setStatus('❌ Could not load photo. Try a different image.');
+    reader.onerror = () => setStatus('❌ File read failed. Try a different image.');
     reader.readAsDataURL(file);
   };
+  img.src = _activeObjectUrl;
 
-  testImg.src = objectUrl;
+  input.value = ''; // allow re-selecting same file
 }
 
-function showPhoto(dataUrl) {
-  const thumb = document.getElementById('photoThumb');
-  thumb.src   = dataUrl;
-  thumb.style.display = 'block';
-  document.getElementById('photoDrop').style.display  = 'none';
-  document.getElementById('generateBtn').disabled = false;
-  setStatus('✅ Photo loaded — tap Generate!');
+// ── Crop screen ───────────────────────────────────────────────
+function openCropScreen(img) {
+  document.getElementById('photoDrop').style.display = 'none';
+  document.getElementById('cropScreen').classList.add('visible');
+  setStatus('Drag and zoom · tap Use This Crop when ready.');
+
+  requestAnimationFrame(() => {
+    const vp = document.getElementById('cropViewport');
+    _cropVW  = vp.clientWidth;
+    _cropVH  = vp.clientHeight;
+
+    const scaleToFill = Math.max(_cropVW / img.naturalWidth, _cropVH / img.naturalHeight);
+    _cropScale = scaleToFill;
+    _cropX = (_cropVW - img.naturalWidth  * _cropScale) / 2;
+    _cropY = (_cropVH - img.naturalHeight * _cropScale) / 2;
+
+    _applyCropTransform();
+    _attachCropListeners();
+  });
 }
 
-// ── Status ────────────────────────────────────────────────────
-function setStatus(msg) {
-  document.getElementById('statusMsg').textContent = msg;
+function _applyCropTransform() {
+  const el = document.getElementById('cropImage');
+  if (!_cropImg) return;
+
+  // Use objectUrl if still alive, otherwise fall back to src/dataURL
+  const src = _activeObjectUrl || _cropImg.src || '';
+  if (el.src !== src) el.src = src;
+
+  el.style.width  = (_cropImg.naturalWidth  * _cropScale) + 'px';
+  el.style.height = (_cropImg.naturalHeight * _cropScale) + 'px';
+  el.style.left   = _cropX + 'px';
+  el.style.top    = _cropY + 'px';
+}
+
+function clampCrop() {
+  if (!_cropImg) return;
+  const iw = _cropImg.naturalWidth  * _cropScale;
+  const ih = _cropImg.naturalHeight * _cropScale;
+  _cropX = iw >= _cropVW ? Math.min(0, Math.max(_cropVW - iw, _cropX)) : (_cropVW - iw) / 2;
+  _cropY = ih >= _cropVH ? Math.min(0, Math.max(_cropVH - ih, _cropY)) : (_cropVH - ih) / 2;
+}
+
+function cropZoom(delta) {
+  if (!_cropImg) return;
+  const minScale = Math.max(_cropVW / _cropImg.naturalWidth, _cropVH / _cropImg.naturalHeight);
+  const newScale = Math.max(minScale, Math.min(8, _cropScale + delta));
+  const cx = _cropVW / 2, cy = _cropVH / 2;
+  _cropX = cx - (cx - _cropX) * (newScale / _cropScale);
+  _cropY = cy - (cy - _cropY) * (newScale / _cropScale);
+  _cropScale = newScale;
+  clampCrop();
+  _applyCropTransform();
+}
+
+function cropReset() {
+  if (!_cropImg) return;
+  const scaleToFill = Math.max(_cropVW / _cropImg.naturalWidth, _cropVH / _cropImg.naturalHeight);
+  _cropScale = scaleToFill;
+  _cropX = (_cropVW - _cropImg.naturalWidth  * _cropScale) / 2;
+  _cropY = (_cropVH - _cropImg.naturalHeight * _cropScale) / 2;
+  clampCrop();
+  _applyCropTransform();
+}
+
+function _attachCropListeners() {
+  const vp = document.getElementById('cropViewport');
+
+  // Touch — attach directly to viewport (safe to re-attach; viewport is replaced on REDO)
+  vp.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      _cropDragging = true;
+      _cropLastX = e.touches[0].clientX;
+      _cropLastY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      _cropPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  vp.addEventListener('touchmove', e => {
+    if (e.touches.length === 1 && _cropDragging) {
+      _cropX += e.touches[0].clientX - _cropLastX;
+      _cropY += e.touches[0].clientY - _cropLastY;
+      _cropLastX = e.touches[0].clientX;
+      _cropLastY = e.touches[0].clientY;
+      clampCrop();
+      _applyCropTransform();
+    } else if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      cropZoom((dist - _cropPinchDist) / 200);
+      _cropPinchDist = dist;
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  vp.addEventListener('touchend',   () => { _cropDragging = false; });
+  vp.addEventListener('touchcancel',() => { _cropDragging = false; });
+
+  // Mouse start — on viewport
+  vp.addEventListener('mousedown', e => {
+    _cropDragging = true;
+    _cropLastX = e.clientX;
+    _cropLastY = e.clientY;
+    e.preventDefault();
+  });
+
+  // Mouse move/up — on window, but attached ONCE only
+  if (!_cropListenersAttached) {
+    window.addEventListener('mousemove', _onCropMouseMove);
+    window.addEventListener('mouseup',   _onCropMouseUp);
+    _cropListenersAttached = true;
+  }
+}
+
+function applyCrop() {
+  if (!_cropImg) {
+    setStatus('❌ No image loaded. Please select a photo first.');
+    return;
+  }
+
+  try {
+    const CROP_W = 1280;
+    const CROP_H = Math.round(CROP_W * (_cropVH / _cropVW));
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = CROP_W;
+    canvas.height = CROP_H;
+    const ctx = canvas.getContext('2d');
+
+    // Convert viewport offset → source image coordinates
+    const srcX = -_cropX / _cropScale;
+    const srcY = -_cropY / _cropScale;
+    const srcW =  _cropVW / _cropScale;
+    const srcH =  _cropVH / _cropScale;
+
+    ctx.drawImage(_cropImg, srcX, srcY, srcW, srcH, 0, 0, CROP_W, CROP_H);
+
+    let dataUrl;
+    try {
+      dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    } catch (secErr) {
+      // Canvas tainted (CORS) — should not happen since we drew from objectUrl,
+      // but catch it explicitly
+      throw new Error('Canvas security error: ' + secErr.message);
+    }
+
+    if (!dataUrl || dataUrl === 'data:,') {
+      throw new Error('Canvas toDataURL returned empty result.');
+    }
+
+    photoDataUrl  = dataUrl;
+    photoBase64   = dataUrl.split(',')[1];
+    photoMimeType = 'image/jpeg';
+
+    // Safe to revoke objectUrl now — we have the base64
+    safeRevokeObjectUrl();
+
+    // Show thumbnail
+    const thumb = document.getElementById('photoThumb');
+    thumb.src   = photoDataUrl;
+    thumb.style.display = 'block';
+
+    // Hide crop screen
+    document.getElementById('cropScreen').classList.remove('visible');
+
+    // Only enable Generate if base64 actually exists
+    if (photoBase64 && photoBase64.length > 100) {
+      document.getElementById('generateBtn').disabled = false;
+      setStatus('✅ Crop saved — tap Generate!');
+    } else {
+      document.getElementById('generateBtn').disabled = true;
+      setStatus('❌ Crop produced empty image. Try again.');
+    }
+
+  } catch (err) {
+    console.error('[applyCrop]', err);
+    setStatus('❌ Crop failed: ' + err.message);
+    // Do NOT enable Generate button
+    document.getElementById('generateBtn').disabled = true;
+  }
 }
 
 // ── Generate card via AI ──────────────────────────────────────
 async function generateCard() {
+  // Hard guard — should never reach here without base64 but be explicit
+  if (!photoBase64) {
+    setStatus('❌ No photo. Please select and crop a record photo first.');
+    document.getElementById('generateBtn').disabled = true;
+    return;
+  }
+
   const btn = document.getElementById('generateBtn');
   btn.disabled = true;
   setStatus('⚡ AI reading the record cover...');
@@ -459,9 +598,7 @@ async function generateCard() {
     '🎴 Building your card...',
   ];
   let mi = 0;
-  const ticker = setInterval(() => {
-    setStatus(messages[++mi % messages.length]);
-  }, 1800);
+  const ticker = setInterval(() => { setStatus(messages[++mi % messages.length]); }, 1800);
 
   try {
     const prompt = `You are the KornDog Records AI. Analyze this vinyl record cover photo and return ONLY a valid JSON object with these exact fields. No markdown, no explanation, just raw JSON.
@@ -471,7 +608,7 @@ async function generateCard() {
   "albumTitle": "Full album title as it appears on the cover",
   "genre": "One or two word genre (Blues, Rock, Soul, Metal, Hip-Hop, Jazz, Country, R&B, Funk, Punk, etc)",
   "vibe": "A 3-6 word atmospheric description. Examples: '2AM whiskey & hard truths', 'Smoke-filled club soul', 'Concrete riffs & bad decisions', 'Velvet heartbreak groove'",
-  "joeySays": "2-5 short lines in the voice of Joey — a real record store guy behind the counter. Raw, human, specific. No music magazine language. No 'available now'. No 'don't miss out'. No 'a must-have for fans'. Sound like you actually love or hate this record and why.",
+  "joeySays": "Write like Joey just pulled this record from a crate and handed it to another collector across the counter. He is not a reviewer. He is not a journalist. He never summarizes. He never describes the genre. He never explains the artist's career. He talks about how the record FEELS — when you would play it, why it belongs in the crate, why someone shouldn't overlook it, what makes it hit. 35-70 words. Plainspoken. Human. Record-store-counter voice. No forced profanity. No forced jokes. No cliches. NEVER use: 'This album', 'Fans of', 'Must-have', 'Classic release', 'Features', 'Showcases', 'Iconic', 'Legendary', 'Influential', 'timeless'. Examples of the right voice: 'Some records ask for your attention. This one steals it.' / 'That bassline has no business hitting this hard.' / 'This is the kind of record that makes you forget to check your phone.' / 'If this one is still sitting in the bin, somebody wasn't paying attention.' / 'Rick James wasn't trying to be cool. He already knew he was.' / 'When two old kings meet on stage, you don't get a show. You get church.'",
   "therapyScore": "A number from 1.0 to 10.0 based on emotional impact and cultural weight of this record",
   "kittyPick": "One of: Crate Gold, Late Night Spin, Sunday Morning, Heavy Rotation, Deep Cut, Store Favorite, Therapy Classic, Dusty Gem, Wall Worthy, Keeper Copy",
   "hashtags": "#KorndogRecords #VinylTherapy and 3-4 more relevant tags as a single string"
@@ -479,35 +616,31 @@ async function generateCard() {
 
 If you cannot read the cover clearly, make your best educated guess from what is visible. Always return valid JSON.`;
 
-    console.log('LIVE AI CALL', {
-      imageMimeType: photoMimeType,
-      imageLength:   photoBase64 ? photoBase64.length : 0,
-    });
+    console.log('LIVE AI CALL', { imageMimeType: photoMimeType, imageLength: photoBase64 ? photoBase64.length : 0 });
 
     let raw;
     if (USE_MOCK_AI) {
-      // ── MOCK — zero API cost for UI testing ────────────────
-      await new Promise(r => setTimeout(r, 1200)); // fake latency
+      await new Promise(r => setTimeout(r, 1200));
       raw = JSON.stringify({
-        artist:        "Bobby Bland & B.B. King",
-        albumTitle:    "Together Again... Live",
-        genre:         "Blues",
-        vibe:          "2AM whiskey & hard truths",
-        joeySays:      "B.B. and Bobby don't sing songs.\nThey testify.\nWhen two old kings meet on stage,\nyou don't get a show.\nYou get church.",
-        therapyScore:  "9.5",
-        kittyPick:     "Crate Gold",
-        hashtags:      "#KorndogRecords #VinylTherapy #BluesMusic #LiveMusic #BBKing #BobbyBland"
+        artist:       'Bobby Bland & B.B. King',
+        albumTitle:   'Together Again... Live',
+        genre:        'Blues',
+        vibe:         '2AM whiskey & hard truths',
+        joeySays:     "B.B. and Bobby don't sing songs.\nThey testify.\nWhen two old kings meet on stage,\nyou don't get a show.\nYou get church.",
+        therapyScore: '9.5',
+        kittyPick:    'Crate Gold',
+        hashtags:     '#KorndogRecords #VinylTherapy #BluesMusic #LiveMusic #BBKing #BobbyBland',
       });
     } else {
       const res = await fetch('/.netlify/functions/generate', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body:    JSON.stringify({
           prompt,
           maxTokens:     1000,
           imageBase64:   photoBase64,
           imageMimeType: photoMimeType,
-        })
+        }),
       });
       const data = await res.json();
       console.log('AI RESPONSE', data);
@@ -515,7 +648,6 @@ If you cannot read the cover clearly, make your best educated guess from what is
       raw = (data?.text || '').trim();
     }
 
-    // Strip any markdown fences
     const clean = raw.replace(/```json|```/g, '').trim();
     let card;
     try {
@@ -525,19 +657,15 @@ If you cannot read the cover clearly, make your best educated guess from what is
       throw new Error('AI returned invalid JSON. Check console for raw output.');
     }
 
-    // Fill fields
-    document.getElementById('f_artist').value = card.artist     || '';
-    document.getElementById('f_album').value  = card.albumTitle  || '';
-    document.getElementById('f_genre').value  = card.genre       || '';
-    document.getElementById('f_vibe').value   = card.vibe        || '';
-    document.getElementById('f_joey').value   = card.joeySays    || '';
-    document.getElementById('f_score').value  = card.therapyScore|| '9.5';
-    document.getElementById('f_kitty').value  = card.kittyPick   || 'Crate Gold';
-
-    // Store hashtags for rendering
+    document.getElementById('f_artist').value = card.artist       || '';
+    document.getElementById('f_album').value  = card.albumTitle   || '';
+    document.getElementById('f_genre').value  = card.genre        || '';
+    document.getElementById('f_vibe').value   = card.vibe         || '';
+    document.getElementById('f_joey').value   = card.joeySays     || '';
+    document.getElementById('f_score').value  = card.therapyScore || '9.5';
+    document.getElementById('f_kitty').value  = card.kittyPick    || 'Crate Gold';
     window._cardHashtags = card.hashtags || '#KorndogRecords #VinylTherapy';
 
-    // Show fields + render card
     document.getElementById('fieldsSection').classList.add('visible');
     await renderCard();
     setStatus('✦ Card generated! Tweak any field below.');
@@ -557,8 +685,10 @@ document.addEventListener('DOMContentLoaded', () => {
   ['f_artist','f_album','f_genre','f_vibe','f_joey','f_score',
    'f_vinyl','f_jacket','f_kitty','f_format'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', debounce(renderCard, 400));
-    if (el) el.addEventListener('change', () => renderCard());
+    if (el) {
+      el.addEventListener('input',  debounce(renderCard, 400));
+      el.addEventListener('change', () => renderCard());
+    }
   });
 });
 
@@ -567,48 +697,53 @@ function debounce(fn, ms) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
 
-async function regenCard() {
+function regenCard() {
+  // Revoke any outstanding objectUrl before resetting
+  safeRevokeObjectUrl();
+
   document.getElementById('fieldsSection').classList.remove('visible');
   document.getElementById('previewWrap').classList.remove('visible');
   document.getElementById('livePreviewBanner').style.display = 'none';
+  document.getElementById('cropScreen').classList.remove('visible');
   document.getElementById('photoDrop').style.display = 'block';
   document.getElementById('photoThumb').style.display = 'none';
   document.getElementById('generateBtn').disabled = true;
-  photoBase64 = null; photoDataUrl = null;
+
+  photoBase64 = null;
+  photoDataUrl = null;
+  _cropImg     = null;
+  _cropDragging = false;
+
   setStatus('');
   document.getElementById('photoInput').value = '';
 }
 
 // ── CARD RENDERER ─────────────────────────────────────────────
 async function renderCard() {
-  const artist  = document.getElementById('f_artist').value  || 'ARTIST';
-  const album   = document.getElementById('f_album').value   || 'ALBUM TITLE';
-  const genre   = document.getElementById('f_genre').value   || 'Genre';
-  const format  = document.getElementById('f_format').value  || 'Vinyl';
-  const vibe    = document.getElementById('f_vibe').value    || 'Vinyl therapy';
-  const joey    = document.getElementById('f_joey').value    || '';
-  const score   = document.getElementById('f_score').value   || '9.5';
-  const vinyl   = document.getElementById('f_vinyl').value   || 'VG+';
-  const jacket  = document.getElementById('f_jacket').value  || 'VG+';
-  const kitty   = document.getElementById('f_kitty').value   || 'Crate Gold';
-  const hashtags= window._cardHashtags || '#KorndogRecords #VinylTherapy';
+  const artist   = document.getElementById('f_artist').value  || 'ARTIST';
+  const album    = document.getElementById('f_album').value   || 'ALBUM TITLE';
+  const genre    = document.getElementById('f_genre').value   || 'Genre';
+  const format   = document.getElementById('f_format').value  || 'Vinyl';
+  const vibe     = document.getElementById('f_vibe').value    || 'Vinyl therapy';
+  const joey     = document.getElementById('f_joey').value    || '';
+  const score    = document.getElementById('f_score').value   || '9.5';
+  const vinyl    = document.getElementById('f_vinyl').value   || 'VG+';
+  const jacket   = document.getElementById('f_jacket').value  || 'VG+';
+  const kitty    = document.getElementById('f_kitty').value   || 'Crate Gold';
+  const hashtags = window._cardHashtags || '#KorndogRecords #VinylTherapy';
+  const sessStr  = currentSessStr; // preview — not yet locked
 
-  const sessStr = currentSessStr;
-
-  // ── Canvas: 1080 wide, height calculated from zones ──────────
   const W        = 1080;
   const SLAB_PAD = 20;
   const IX       = SLAB_PAD + 14;
   const IW       = W - (SLAB_PAD + 14) * 2;
-
-  // Zone heights — photo gets the most space, footer is tight
-  const LABEL_H = 138;
-  const PHOTO_H = 580;
-  const STATS_H = 240;
-  const FOOT_H  = 75;
-  const GAP     = 8;
-  const IY      = SLAB_PAD + 14;
-  const H       = IY + LABEL_H + GAP + PHOTO_H + GAP + STATS_H + GAP + FOOT_H + SLAB_PAD + 14;
+  const LABEL_H  = 138;
+  const PHOTO_H  = 580;
+  const STATS_H  = 240;
+  const FOOT_H   = 75;
+  const GAP      = 8;
+  const IY       = SLAB_PAD + 14;
+  const H        = IY + LABEL_H + GAP + PHOTO_H + GAP + STATS_H + GAP + FOOT_H + SLAB_PAD + 14;
 
   const LIME   = '#7FD41A';
   const PURPLE = '#4a1a8a';
@@ -616,22 +751,22 @@ async function renderCard() {
   const CREAM  = '#f0ead6';
   const PANEL  = '#111111';
 
-  // Derived zone Y positions
   const PHOTO_Y = IY + LABEL_H + GAP;
   const STATS_Y = PHOTO_Y + PHOTO_H + GAP;
   const FOOT_Y  = STATS_Y + STATS_H + GAP;
 
-  const canvas = document.getElementById('previewCanvas');
+  const canvas  = document.getElementById('previewCanvas');
   canvas.width  = W;
   canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  const ctx     = canvas.getContext('2d');
 
+  // loadImg: resolves with Image or null — never throws
   function loadImg(src) {
     return new Promise(resolve => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       img.onload  = () => resolve(img);
-      img.onerror = () => resolve(null);
+      img.onerror = () => resolve(null); // card still renders without this asset
       img.src = src;
     });
   }
@@ -662,15 +797,18 @@ async function renderCard() {
     ctx.closePath();
   }
 
+  // Load all assets in parallel — null results are handled gracefully below
   const [logoImg, kittyImg, photoImg] = await Promise.all([
     loadImg('/images/Screenshot_20250831-144625.png'),
     loadImg('/images/3817.png'),
-    photoDataUrl ? new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = photoDataUrl;
-    }) : Promise.resolve(null)
+    photoDataUrl
+      ? new Promise(resolve => {
+          const img = new Image();
+          img.onload  = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = photoDataUrl;
+        })
+      : Promise.resolve(null),
   ]);
 
   // ── SLAB SHELL ────────────────────────────────────────────
@@ -679,69 +817,50 @@ async function renderCard() {
   ctx.fillStyle = DARK;
   roundRect(SLAB_PAD, SLAB_PAD, W - SLAB_PAD*2, H - SLAB_PAD*2, 16);
   ctx.fill();
-  ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth   = 2;
+  ctx.strokeStyle = '#2a2a2a'; ctx.lineWidth = 2;
   roundRect(SLAB_PAD, SLAB_PAD, W - SLAB_PAD*2, H - SLAB_PAD*2, 16);
   ctx.stroke();
 
   // ── 1. PSA LABEL BAR ──────────────────────────────────────
   ctx.fillStyle = CREAM;
-  roundRect(IX, IY, IW, LABEL_H, 10);
-  ctx.fill();
-
-  // Purple top stripe
+  roundRect(IX, IY, IW, LABEL_H, 10); ctx.fill();
   ctx.fillStyle = PURPLE;
-  roundRect(IX, IY, IW, 16, 10);
-  ctx.fill();
+  roundRect(IX, IY, IW, 16, 10); ctx.fill();
   ctx.fillRect(IX, IY + 8, IW, 8);
 
-  // KornDog circular logo — clipped to circle, left of label
+  // Logo — renders if loaded, skipped gracefully if null
   if (logoImg) {
-    const lSize = LABEL_H - 16; // circle diameter fits label height
-    const lX    = IX + 8;
-    const lY    = IY + 8;
-    // Draw the square image clipped to circle
+    const lSize = LABEL_H - 16;
+    const lX = IX + 8, lY = IY + 8;
     ctx.save();
     ctx.beginPath();
     ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI*2);
     ctx.clip();
     ctx.drawImage(logoImg, lX, lY, lSize, lSize);
     ctx.restore();
-    // Thin purple ring around logo
-    ctx.strokeStyle = PURPLE;
-    ctx.lineWidth   = 3;
+    ctx.strokeStyle = PURPLE; ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI*2);
     ctx.stroke();
   }
 
-  // Shift label text right to clear the logo
   const LOGO_SIZE = LABEL_H - 16;
-
-  // Label text area
   const LTX = IX + LOGO_SIZE + 20;
   const LTW = IW - 150;
   ctx.textAlign = 'left';
 
-  // "1990 KORNDOG #001"
-  ctx.fillStyle = '#333';
-  ctx.font      = 'bold 20px Arial, sans-serif';
+  ctx.fillStyle = '#333'; ctx.font = 'bold 20px Arial, sans-serif';
   ctx.fillText('1990 KORNDOG', LTX, IY + 40);
   ctx.fillStyle = PURPLE;
   ctx.fillText(`  #${sessStr}`, LTX + ctx.measureText('1990 KORNDOG').width, IY + 40);
 
-  // Artist — big
-  ctx.fillStyle = '#111';
-  ctx.font      = 'bold 32px Arial Black, Arial, sans-serif';
+  ctx.fillStyle = '#111'; ctx.font = 'bold 32px Arial Black, Arial, sans-serif';
   const artistLines = wrapText(artist.toUpperCase(), LTW, 'bold 32px Arial Black, Arial, sans-serif');
   artistLines.slice(0, 2).forEach((l, i) => ctx.fillText(l, LTX, IY + 72 + i * 34));
 
-  // Album — purple italic
-  ctx.fillStyle = PURPLE;
-  ctx.font      = 'italic bold 19px Arial, sans-serif';
+  ctx.fillStyle = PURPLE; ctx.font = 'italic bold 19px Arial, sans-serif';
   ctx.fillText(album.toUpperCase(), LTX, IY + 72 + Math.min(artistLines.length,2)*34 + 2);
 
-  // Deterministic barcode
   const bcY = IY + LABEL_H - 24;
   const barcodeSeed = sessStr + artist + album;
   for (let b = 0; b < 55; b++) {
@@ -750,17 +869,14 @@ async function renderCard() {
     ctx.fillStyle = '#333';
     ctx.fillRect(LTX + b * 2.4, bcY, bw, 10);
   }
-  ctx.fillStyle = '#666';
-  ctx.font      = '10px monospace';
+  ctx.fillStyle = '#666'; ctx.font = '10px monospace';
   ctx.fillText('VINYL THERAPY SESSION', LTX + 145, bcY + 10);
 
-  // GEM MT badge — right of label
   const GX = IX + IW - 125;
-  ctx.fillStyle = '#222';
-  ctx.font      = 'bold 15px Arial, sans-serif';
+  ctx.fillStyle = '#222'; ctx.font = 'bold 15px Arial, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText('GEM MT', GX + 55, IY + 42);
-  ctx.font      = 'bold 68px Arial Black, Arial, sans-serif';
+  ctx.font = 'bold 68px Arial Black, Arial, sans-serif';
   ctx.fillText('10', GX + 55, IY + 116);
 
   // ── 2. GOLD FRAME + PHOTO ─────────────────────────────────
@@ -771,28 +887,24 @@ async function renderCard() {
   grd.addColorStop(0.8, '#e8b820');
   grd.addColorStop(1,   '#906810');
   ctx.fillStyle = grd;
-  roundRect(IX, PHOTO_Y, IW, PHOTO_H, 10);
-  ctx.fill();
+  roundRect(IX, PHOTO_Y, IW, PHOTO_H, 10); ctx.fill();
 
   if (photoImg) {
     const pX = IX + CARD_PAD, pY = PHOTO_Y + CARD_PAD;
     const pW = IW - CARD_PAD*2, pH = PHOTO_H - CARD_PAD*2;
-
-    // KornDog Crop Mode™ — cover fill with top bias
-    // Shows top of cover (where artist/title usually lives) rather than center
+    // KornDog Crop Mode™ — manual crop already matches ratio; Math.max fills frame
     const COVER_TOP_BIAS = 0.15;
     const scale = Math.max(pW / photoImg.width, pH / photoImg.height);
     const sw    = photoImg.width  * scale;
     const sh    = photoImg.height * scale;
     const sx    = pX + (pW - sw) / 2;
     const sy    = pY + (pH - sh) * COVER_TOP_BIAS;
-
     ctx.save();
-    roundRect(pX, pY, pW, pH, 6);
-    ctx.clip();
+    roundRect(pX, pY, pW, pH, 6); ctx.clip();
     ctx.drawImage(photoImg, sx, sy, sw, sh);
     ctx.restore();
   } else {
+    // Placeholder — card still renders and downloads
     ctx.fillStyle = '#1a1a1a';
     roundRect(IX+CARD_PAD, PHOTO_Y+CARD_PAD, IW-CARD_PAD*2, PHOTO_H-CARD_PAD*2, 6);
     ctx.fill();
@@ -808,22 +920,17 @@ async function renderCard() {
   ctx.fillStyle = LIME; ctx.fill();
   ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 3; ctx.stroke();
   ctx.restore();
-  ctx.fillStyle = '#0a0a0a';
-  ctx.font = 'bold 12px Arial Black, Arial, sans-serif';
+  ctx.fillStyle = '#0a0a0a'; ctx.font = 'bold 12px Arial Black, Arial, sans-serif';
   ctx.textAlign = 'center';
   ['REAL','MUSIC.','REAL','SOUL.'].forEach((t,i) => ctx.fillText(t, bdX, bdY - 18 + i*16));
 
-  // ── 3. STATS PANEL — 3 columns ────────────────────────────
+  // ── 3. STATS PANEL ────────────────────────────────────────
   ctx.fillStyle = PANEL;
-  roundRect(IX, STATS_Y, IW, STATS_H, 8);
-  ctx.fill();
+  roundRect(IX, STATS_Y, IW, STATS_H, 8); ctx.fill();
   ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.5;
-  roundRect(IX, STATS_Y, IW, STATS_H, 8);
-  ctx.stroke();
+  roundRect(IX, STATS_Y, IW, STATS_H, 8); ctx.stroke();
 
   const COL_W = IW / 3;
-
-  // Dividers
   [1,2].forEach(n => {
     ctx.strokeStyle = '#252525'; ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -832,75 +939,52 @@ async function renderCard() {
     ctx.stroke();
   });
 
-  // ── COL 1: Genre / Format / Vibe ──────────────────────────
+  // COL 1 — Genre / Format / Vibe
   const C1X = IX + 14;
-  let c1Y = STATS_Y + 28;
-
   function statBlock(label, value, x, y, maxW) {
-    // Small grey label
-    ctx.fillStyle = '#666'; ctx.font = 'bold 11px Arial, sans-serif';
-    ctx.textAlign = 'left';
+    ctx.fillStyle = '#666'; ctx.font = 'bold 11px Arial, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(label, x, y);
-    // Bold white value
     ctx.fillStyle = '#eeeeee'; ctx.font = 'bold 20px Arial Black, Arial, sans-serif';
     const lines = wrapText(value.toUpperCase(), maxW, 'bold 20px Arial Black, Arial, sans-serif');
     lines.slice(0,2).forEach((l,i) => ctx.fillText(l, x, y + 20 + i*24));
-    // Lime underline under value
     ctx.fillStyle = LIME;
     const ulY = y + 22 + Math.max(0, lines.length-1)*24 + 4;
     ctx.fillRect(x, ulY, Math.min(ctx.measureText(lines[0]||'').width + 4, maxW), 2);
-    return ulY + 18; // next block starts after underline + gap
+    return ulY + 18;
   }
-
-  // Evenly space the 3 stat blocks across 240px stats height
   const statGap = (STATS_H - 20) / 3;
-  c1Y = statBlock('GENRE',  genre,  C1X, STATS_Y + 16,           COL_W - 24);
-        statBlock('FORMAT', format, C1X, STATS_Y + 16 + statGap,  COL_W - 24);
-        statBlock('VIBE',   vibe,   C1X, STATS_Y + 16 + statGap*2, COL_W - 24);
+  statBlock('GENRE',  genre,  C1X, STATS_Y + 16,             COL_W - 24);
+  statBlock('FORMAT', format, C1X, STATS_Y + 16 + statGap,   COL_W - 24);
+  statBlock('VIBE',   vibe,   C1X, STATS_Y + 16 + statGap*2, COL_W - 24);
 
-  // ── COL 2: Joey Says ──────────────────────────────────────
+  // COL 2 — Joey Says
   const C2X = IX + COL_W + 14;
   const C2W = COL_W - 28;
   let c2Y = STATS_Y + 20;
-
-  ctx.fillStyle = LIME;
-  ctx.font      = 'italic bold 22px Georgia, serif';
-  ctx.textAlign = 'left';
+  ctx.fillStyle = LIME; ctx.font = 'italic bold 22px Georgia, serif'; ctx.textAlign = 'left';
   ctx.fillText('JOEY SAYS:', C2X, c2Y + 18);
   c2Y += 32;
-
-  // Faint quote mark
-  ctx.fillStyle = 'rgba(127,212,26,0.12)';
-  ctx.font      = 'bold 90px Georgia, serif';
+  ctx.fillStyle = 'rgba(127,212,26,0.12)'; ctx.font = 'bold 90px Georgia, serif';
   ctx.fillText('"', C2X - 6, c2Y + 70);
-
-  // Joey text — bigger, more readable
-  ctx.fillStyle = '#d8d8d8';
-  ctx.font      = '22px Arial, sans-serif';
-  const joeyLines = joey.split('\n').flatMap(line =>
-    wrapText(line, C2W, '22px Arial, sans-serif')
-  );
+  ctx.fillStyle = '#d8d8d8'; ctx.font = '22px Arial, sans-serif';
+  const joeyLines = joey.split('\n').flatMap(line => wrapText(line, C2W, '22px Arial, sans-serif'));
   c2Y += 10;
-  joeyLines.slice(0, 7).forEach(l => {
-    ctx.fillText(l, C2X, c2Y);
-    c2Y += 28;
-  });
+  joeyLines.slice(0, 7).forEach(l => { ctx.fillText(l, C2X, c2Y); c2Y += 28; });
 
-  // Zombie Kitty — bottom right of col 2
+  // Kitty — renders if loaded, skipped gracefully if null
   if (kittyImg) {
     const kH = 75;
     const kW = (kittyImg.width / kittyImg.height) * kH;
     ctx.drawImage(kittyImg, IX + COL_W*2 - kW - 8, STATS_Y + STATS_H - kH - 6, kW, kH);
   }
 
-  // ── COL 3: Scores — clean, no giant duplicate ─────────────
+  // COL 3 — Scores
   const C3X = IX + COL_W*2 + 14;
   const C3W = COL_W - 24;
   let c3Y = STATS_Y + 20;
 
   function scoreBlock(label, value, y) {
-    ctx.fillStyle = '#555'; ctx.font = 'bold 12px Arial, sans-serif';
-    ctx.textAlign = 'left';
+    ctx.fillStyle = '#555'; ctx.font = 'bold 12px Arial, sans-serif'; ctx.textAlign = 'left';
     ctx.fillText(label, C3X, y);
     ctx.fillStyle = '#eee'; ctx.font = 'bold 26px Arial Black, Arial, sans-serif';
     ctx.fillText(value, C3X, y + 26);
@@ -909,20 +993,19 @@ async function renderCard() {
     return y + 50;
   }
 
-  // Therapy Score — big number, small /10, baseline-aligned
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 11px Arial, sans-serif';
-  ctx.textAlign = 'left';
+  ctx.fillStyle = LIME; ctx.font = 'bold 11px Arial, sans-serif'; ctx.textAlign = 'left';
   ctx.fillText('💜 THERAPY SCORE', C3X, c3Y);
   c3Y += 10;
-  const scoreBY = c3Y + 52; // shared baseline
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 58px Arial Black, Arial, sans-serif';
+  const scoreBY = c3Y + 52;
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 58px Arial Black, Arial, sans-serif';
   ctx.fillText(score, C3X, scoreBY);
-  // /10 smaller, baseline-aligned with score
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 22px Arial, sans-serif';
-  ctx.fillText('/10', C3X + (() => { ctx.font='bold 58px Arial Black, Arial, sans-serif'; const w=ctx.measureText(score).width; ctx.font='bold 22px Arial, sans-serif'; return w; })() + 4, scoreBY);
+  ctx.fillStyle = LIME; ctx.font = 'bold 22px Arial, sans-serif';
+  ctx.fillText('/10', C3X + (() => {
+    ctx.font = 'bold 58px Arial Black, Arial, sans-serif';
+    const w  = ctx.measureText(score).width;
+    ctx.font = 'bold 22px Arial, sans-serif';
+    return w;
+  })() + 4, scoreBY);
   ctx.fillStyle = '#252525';
   ctx.fillRect(C3X, scoreBY + 8, C3W, 1);
   c3Y = scoreBY + 20;
@@ -930,74 +1013,82 @@ async function renderCard() {
   c3Y = scoreBlock('💿 VINYL GRADE',  vinyl,  c3Y);
   c3Y = scoreBlock('📦 JACKET GRADE', jacket, c3Y);
 
-  // Kitty Pick
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 12px Arial, sans-serif';
+  ctx.fillStyle = LIME; ctx.font = 'bold 12px Arial, sans-serif';
   ctx.fillText('🐱 KITTY PICK', C3X, c3Y);
-  ctx.fillStyle = '#eee';
-  ctx.font      = 'bold 19px Arial Black, Arial, sans-serif';
+  ctx.fillStyle = '#eee'; ctx.font = 'bold 19px Arial Black, Arial, sans-serif';
   const kittyLines = wrapText(kitty.toUpperCase(), C3W, 'bold 19px Arial Black, Arial, sans-serif');
   kittyLines.slice(0,2).forEach((l,i) => ctx.fillText(l, C3X, c3Y + 20 + i*22));
 
-  // ── 4. FOOTER — tight lime bar ────────────────────────────
+  // ── 4. FOOTER ────────────────────────────────────────────
   ctx.fillStyle = LIME;
-  roundRect(IX, FOOT_Y, IW, FOOT_H, 8);
-  ctx.fill();
-
-  // Left: tagline
-  ctx.fillStyle = '#0a0a0a';
-  ctx.font      = 'bold 16px Arial Black, Arial, sans-serif';
+  roundRect(IX, FOOT_Y, IW, FOOT_H, 8); ctx.fill();
+  ctx.fillStyle = '#0a0a0a'; ctx.font = 'bold 16px Arial Black, Arial, sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('RAW GROOVES. REAL REVIEWS. ZERO FLUFF.', IX + 16, FOOT_Y + FOOT_H/2 + 6);
-
-  // Right: domain
-  ctx.font      = 'bold 14px Arial, sans-serif';
-  ctx.textAlign = 'right';
+  ctx.font = 'bold 14px Arial, sans-serif'; ctx.textAlign = 'right';
   ctx.fillText('★ korndogrecords.com ★', IX + IW - 16, FOOT_Y + FOOT_H/2 + 6);
 
-  // Live preview banner
   const bannerEl = document.getElementById('livePreviewBanner');
   if (bannerEl) bannerEl.style.display = 'block';
-
   document.getElementById('previewWrap').classList.add('visible');
 }
 
-// ── Download ──────────────────────────────────────────────────
+// ── Download — session locks HERE and only here ───────────────
 async function downloadCard() {
-  sessionNum += 1;
-  currentSessStr = String(sessionNum).padStart(3, '0');
-  localStorage.setItem('kd_therapy_session', sessionNum);
+  if (_downloadInProgress) return;
+  _downloadInProgress = true;
 
-  await renderCard();
+  try {
+    sessionNum    += 1;
+    currentSessStr = String(sessionNum).padStart(3, '0');
+    localStorage.setItem('kd_therapy_session', sessionNum);
 
-  const canvas  = document.getElementById('previewCanvas');
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.93);
-  const artist  = document.getElementById('f_artist').value || 'record';
-  const sessStr = currentSessStr;
+    await renderCard();
 
-  const a = document.createElement('a');
-  a.href     = dataUrl;
-  a.download = `korndog-therapy-card-${sessStr}-${artist.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,30)}.jpg`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    const canvas = document.getElementById('previewCanvas');
+    let dataUrl;
+    try {
+      dataUrl = canvas.toDataURL('image/jpeg', 0.93);
+    } catch (err) {
+      console.error('[downloadCard] toDataURL failed:', err);
+      showToast('❌ Download failed: ' + err.message);
+      // Roll back session increment since card was not saved
+      sessionNum    -= 1;
+      currentSessStr = String(sessionNum + 1).padStart(3, '0');
+      localStorage.setItem('kd_therapy_session', sessionNum);
+      await renderCard();
+      return;
+    }
 
-  const caption = `${document.getElementById('f_artist').value} — ${document.getElementById('f_album').value}\n\n${document.getElementById('f_joey').value}\n\n${window._cardHashtags || '#KorndogRecords #VinylTherapy'}\n\nkorndogrecords.com`;
-  if (navigator.clipboard) navigator.clipboard.writeText(caption).catch(() => {});
+    const artist  = document.getElementById('f_artist').value || 'record';
+    const sessStr = currentSessStr;
+    const a       = document.createElement('a');
+    a.href     = dataUrl;
+    a.download = `korndog-therapy-card-${sessStr}-${artist.toLowerCase().replace(/[^a-z0-9]/g,'-').slice(0,30)}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
-  showToast('📥 Card saved! Caption copied.');
+    const caption = [
+      document.getElementById('f_artist').value + ' — ' + document.getElementById('f_album').value,
+      '',
+      document.getElementById('f_joey').value,
+      '',
+      window._cardHashtags || '#KorndogRecords #VinylTherapy',
+      '',
+      'korndogrecords.com',
+    ].join('\n');
+    if (navigator.clipboard) navigator.clipboard.writeText(caption).catch(() => {});
 
-  // Reset preview to next session number so subsequent cards are correct
-  currentSessStr = String(sessionNum + 1).padStart(3, '0');
-  await renderCard();
-}
+    showToast('📥 Card saved! Caption copied.');
 
-// ── Toast ─────────────────────────────────────────────────────
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
+    // Advance preview to next session
+    currentSessStr = String(sessionNum + 1).padStart(3, '0');
+    await renderCard();
+
+  } finally {
+    _downloadInProgress = false;
+  }
 }
 </script>
 </body>
