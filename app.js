@@ -525,354 +525,99 @@ async function regenCard() {
   }
 }
 
-// ── BRANDED GRAPHIC GENERATOR ─────────────────────────────────
-// Generates a KornDog-branded image combining the record photo
-// with the post text overlaid, then downloads it as a JPEG.
-// User taps Post Now → saves graphic to camera roll → posts to
-// Facebook as a photo post with caption pasted from clipboard.
-
-// ── SESSION COUNTER ───────────────────────────────────────────
-function getNextSessionNumber() {
-  let n = parseInt(localStorage.getItem('kd_session_num') || '0', 10);
-  n += 1;
-  localStorage.setItem('kd_session_num', n);
-  return String(n).padStart(3, '0');
-}
-
-// ── BRANDED GRAPHIC GENERATOR (v3 — full layout) ─────────────
-// Layout matches the KornDog record review card style:
-//
-//  ┌──────────────────────────────────────────────────────┐
-//  │ [LOGO]  KORNDOG RECORDS          VINYL THERAPY #071  │  TOP BAR
-//  │         RAW GROOVES. REAL REVIEWS. ZERO FLUFF.       │
-//  ├──────────────────────────────────────────────────────┤
-//  │                                                      │
-//  │                  RECORD PHOTO                        │  PHOTO
-//  │                                                      │
-//  ├──────────────────────────────────────────────────────┤
-//  │ 🎵 SOUNDS LIKE: │ 💬 JOEY SAYS:  │ ⭐ THERAPY SCORE │  3-COL
-//  │  [auto-vibes]   │  [post text]   │    9.5/10        │
-//  │                 │                │  🐱 KITTY PICK   │
-//  ├──────────────────────────────────────────────────────┤
-//  │ #hashtags                [kitty]   [actions]         │  FOOTER
-//  │ korndogrecords.com                                   │
-//  └──────────────────────────────────────────────────────┘
-
-async function generateBrandedGraphic(post) {
-  const { bodyText, hashText } = splitPostText(post.text);
-  const sessionNum = getNextSessionNumber();
-
-  const W    = 1080;
-  const H    = 1350;
-  const LIME = '#7FD41A';
-  const DARK = '#0a0a0a';
-  const MID  = '#141414';
-  const PANEL= '#1a1a1a';
-
-  const canvas = document.createElement('canvas');
-  canvas.width  = W;
-  canvas.height = H;
-  const ctx = canvas.getContext('2d');
-
-  // helper: load image with crossOrigin, resolve even on error
-  function loadImg(src) {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload  = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = src;
-    });
-  }
-
-  // helper: word-wrap
-  function wrapText(txt, maxW, font) {
-    if (font) ctx.font = font;
-    const words = txt.split(' ');
-    const lines = [];
-    let cur = '';
-    for (const w of words) {
-      const test = cur ? cur + ' ' + w : w;
-      if (ctx.measureText(test).width > maxW && cur) {
-        lines.push(cur); cur = w;
-      } else { cur = test; }
-    }
-    if (cur) lines.push(cur);
-    return lines;
-  }
-
-  // helper: rounded rect
-  function roundRect(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-  }
-
-  // ── Load all images in parallel ────────────────────────────
-  const [logoImg, kittyImg, photoImg] = await Promise.all([
-    loadImg('https://korndogrecords.com/images/Screenshot_20250831-144625.png'),
-    loadImg('https://korndogrecords.com/images/3817.png'),
-    post.photoDataUrl ? new Promise(resolve => {
-      const img = new Image();
-      img.onload  = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = post.photoDataUrl;
-    }) : Promise.resolve(null),
-  ]);
-
-  // ── Zone heights ───────────────────────────────────────────
-  const TOP_H   = 140;   // top bar with logo + title
-  const PHOTO_H = photoImg ? 500 : 0;
-  const INFO_H  = 340;   // 3-column info panel
-  const FOOT_H  = H - TOP_H - PHOTO_H - INFO_H; // remainder for footer
-
-  // ── 1. Full background ─────────────────────────────────────
-  ctx.fillStyle = DARK;
-  ctx.fillRect(0, 0, W, H);
-
-  // ── 2. TOP BAR ─────────────────────────────────────────────
-  ctx.fillStyle = '#0d0d0d';
-  ctx.fillRect(0, 0, W, TOP_H);
-
-  // Lime bottom border on top bar
-  ctx.fillStyle = LIME;
-  ctx.fillRect(0, TOP_H - 4, W, 4);
-
-  // Circular KornDog logo — left side
-  if (logoImg) {
-    const lSize = 110;
-    const lX = 20, lY = (TOP_H - lSize) / 2;
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(lX + lSize/2, lY + lSize/2, lSize/2, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(logoImg, lX, lY, lSize, lSize);
-    ctx.restore();
-  }
-
-  // KORNDOG RECORDS text
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 52px Arial Black, Arial, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('KORNDOG', 148, 68);
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 52px Arial Black, Arial, sans-serif';
-  ctx.fillText('RECORDS', 148, 122);
-
-  // Tagline
-  ctx.fillStyle = '#888888';
-  ctx.font      = '20px Arial, sans-serif';
-  ctx.fillText('RAW GROOVES. REAL REVIEWS. ZERO FLUFF.', 148, 132);
-
-  // VINYL THERAPY badge — right side
-  const badgeX = W - 180;
-  const badgeY = 12;
-  const badgeW = 168;
-  const badgeH = TOP_H - 24;
-  ctx.strokeStyle = LIME;
-  ctx.lineWidth   = 3;
-  roundRect(badgeX, badgeY, badgeW, badgeH, 8);
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(127,212,26,0.08)';
-  roundRect(badgeX, badgeY, badgeW, badgeH, 8);
-  ctx.fill();
-
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 18px Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('VINYL', badgeX + badgeW/2, badgeY + 30);
-  ctx.fillText('THERAPY', badgeX + badgeW/2, badgeY + 52);
-  ctx.fillText('SESSION', badgeX + badgeW/2, badgeY + 72);
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 42px Arial Black, Arial, sans-serif';
-  ctx.fillText(`#${sessionNum}`, badgeX + badgeW/2, badgeY + 118);
-
-  // ── 3. RECORD PHOTO ────────────────────────────────────────
-  if (photoImg) {
-    const pY = TOP_H;
-    const scale = Math.max(W / photoImg.width, PHOTO_H / photoImg.height);
-    const sw = photoImg.width  * scale;
-    const sh = photoImg.height * scale;
-    const sx = (W - sw) / 2;
-    const sy = pY + (PHOTO_H - sh) / 2;
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, pY, W, PHOTO_H);
-    ctx.clip();
-    ctx.drawImage(photoImg, sx, sy, sw, sh);
-    ctx.restore();
-
-    // Subtle vignette at bottom of photo
-    const vig = ctx.createLinearGradient(0, pY + PHOTO_H * 0.7, 0, pY + PHOTO_H);
-    vig.addColorStop(0, 'rgba(10,10,10,0)');
-    vig.addColorStop(1, 'rgba(10,10,10,0.6)');
-    ctx.fillStyle = vig;
-    ctx.fillRect(0, pY, W, PHOTO_H);
-  }
-
-  // Lime divider
-  ctx.fillStyle = LIME;
-  ctx.fillRect(0, TOP_H + PHOTO_H, W, 5);
-
-  // ── 4. 3-COLUMN INFO PANEL ─────────────────────────────────
-  const infoY  = TOP_H + PHOTO_H + 5;
-  const colW   = W / 3;
-  const PAD    = 24;
-
-  ctx.fillStyle = PANEL;
-  ctx.fillRect(0, infoY, W, INFO_H);
-
-  // Column dividers
-  ctx.strokeStyle = '#2a2a2a';
-  ctx.lineWidth   = 2;
-  ctx.beginPath();
-  ctx.moveTo(colW, infoY + 20);
-  ctx.lineTo(colW, infoY + INFO_H - 20);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(colW * 2, infoY + 20);
-  ctx.lineTo(colW * 2, infoY + INFO_H - 20);
-  ctx.stroke();
-
-  // ── COL 1: SOUNDS LIKE ─────────────────────────────────────
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 20px Arial, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('🎵 SOUNDS LIKE:', PAD, infoY + 40);
-
-  // Auto-generate a vibe description from post type/tone
-  const vibeMap = {
-    raw:         ['Unfiltered.', 'Zero pretense.', 'Raw energy.'],
-    hype:        ['Pure hype.', 'Turn it up.', 'Full send.'],
-    nostalgic:   ['Timeless.', 'Feels like home.', 'Classic vibes.'],
-    funny:       ['Laugh track.', 'Self-aware.', 'Good times.'],
-    educational: ['Deep cut.', 'For the heads.', 'Study up.'],
-  };
-  const vibes = vibeMap[post.tone] || ['Vinyl certified.', 'Crate gold.', 'Press play.'];
-
-  ctx.fillStyle = '#cccccc';
-  ctx.font      = '24px Arial, sans-serif';
-  vibes.forEach((v, i) => ctx.fillText(v, PAD, infoY + 80 + i * 36));
-
-  // ── COL 2: JOEY SAYS ───────────────────────────────────────
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 20px Arial, sans-serif';
-  ctx.fillText('💬 JOEY SAYS:', colW + PAD, infoY + 40);
-
-  // Use first ~120 chars of body text as the pull quote
-  const pullQuote = bodyText.length > 120 ? bodyText.slice(0, 117) + '…' : bodyText;
-  ctx.fillStyle = '#cccccc';
-  const joeyLines = wrapText(pullQuote, colW - PAD * 2, '22px Arial, sans-serif');
-  joeyLines.slice(0, 7).forEach((l, i) => {
-    ctx.fillText(l, colW + PAD, infoY + 80 + i * 32);
-  });
-
-  // ── COL 3: THERAPY SCORE ───────────────────────────────────
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 20px Arial, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('⭐ THERAPY SCORE:', colW * 2 + colW / 2, infoY + 40);
-
-  // Score — always 9.5 (it's KornDog Approved, everything is fire)
-  ctx.fillStyle = '#ffffff';
-  ctx.font      = 'bold 72px Arial Black, Arial, sans-serif';
-  ctx.fillText('9.5', colW * 2 + colW / 2, infoY + 130);
-
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 28px Arial, sans-serif';
-  ctx.fillText('/10', colW * 2 + colW / 2 + 36, infoY + 130);
-
-  // Lime divider under score
-  ctx.fillStyle = LIME;
-  ctx.fillRect(colW * 2 + PAD, infoY + 148, colW - PAD * 2, 3);
-
-  // Kitty Pick badge
-  ctx.fillStyle = LIME;
-  ctx.font      = 'bold 20px Arial, sans-serif';
-  ctx.fillText('🐱 KITTY PICK', colW * 2 + colW / 2, infoY + 190);
-  ctx.fillStyle = '#aaaaaa';
-  ctx.font      = '18px Arial, sans-serif';
-  ctx.fillText('CRATE GOLD. ALWAYS.', colW * 2 + colW / 2, infoY + 218);
-
-  // ── 5. FOOTER ──────────────────────────────────────────────
-  const footY = infoY + INFO_H;
-  ctx.fillStyle = MID;
-  ctx.fillRect(0, footY, W, FOOT_H);
-
-  // Lime top border on footer
-  ctx.fillStyle = LIME;
-  ctx.fillRect(0, footY, W, 4);
-
-  // Hashtags — left column
-  if (hashText) {
-    ctx.fillStyle = LIME;
-    ctx.font      = 'bold 24px Arial, sans-serif';
-    ctx.textAlign = 'left';
-    const hashLines = wrapText(hashText, 340, 'bold 24px Arial, sans-serif');
-    hashLines.slice(0, 3).forEach((hl, i) => {
-      ctx.fillText(hl, PAD, footY + 44 + i * 34);
-    });
-  }
-
-  // korndogrecords.com — bottom left
-  ctx.fillStyle = 'rgba(127,212,26,0.55)';
-  ctx.font      = '20px Arial, sans-serif';
-  ctx.textAlign = 'left';
-  ctx.fillText('🌐 korndogrecords.com', PAD, footY + FOOT_H - 18);
-
-  // Zombie Kitty — center of footer
-  if (kittyImg) {
-    const kH = FOOT_H - 20;
-    const kW = (kittyImg.width / kittyImg.height) * kH;
-    ctx.drawImage(kittyImg, (W - kW) / 2, footY + 10, kW, kH - 10);
-  }
-
-  // Action buttons — right column
-  const actions = ['DROP YOUR PICK\nIN THE COMMENTS', 'SAVE THIS POST\nFOR LATER', 'SHARE WITH A\nFELLOW DIGGER'];
-  const icons   = ['💬', '🔖', '📤'];
-  const actX    = W - 290;
-
-  ctx.textAlign = 'left';
-  actions.forEach((action, i) => {
-    const ay = footY + 28 + i * (FOOT_H / 3 - 4);
-    ctx.fillStyle = LIME;
-    ctx.font      = '26px Arial, sans-serif';
-    ctx.fillText(icons[i], actX, ay + 4);
-
-    ctx.fillStyle = '#cccccc';
-    ctx.font      = 'bold 16px Arial, sans-serif';
-    action.split('\n').forEach((line, li) => {
-      ctx.fillText(line, actX + 36, ay + li * 20);
-    });
-  });
-
-  // Bottom lime strip
-  ctx.fillStyle = LIME;
-  ctx.fillRect(0, H - 6, W, 6);
-
-  return canvas;
-}
-
-// ── POST NOW → Download branded graphic + copy caption ────────
+// ── POST NOW → Download graphic + copy caption ────────────────
+// Builds canvas from post's own photoDataUrl only — no external
+// image loads, no crossOrigin, no CORS risk.
 async function postToMeta(post, idx, btn) {
   if (btn) { btn.disabled = true; btn.textContent = '⚙️ Building...'; }
 
   try {
     showToast('🎨 Generating graphic...');
 
-    const canvas  = await generateBrandedGraphic(post);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const { bodyText, hashText } = splitPostText(post.text);
+    const W = 1080, H = 1080;
+    const LIME = '#7FD41A';
 
-    // Download the graphic
+    const canvas = document.createElement('canvas');
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Dark background
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, W, H);
+
+    // Record photo — local data URL only, never crossOrigin
+    if (post.photoDataUrl) {
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => {
+          const PHOTO_H = H * 0.62;
+          const scale   = Math.max(W / img.width, PHOTO_H / img.height);
+          const sw = img.width * scale, sh = img.height * scale;
+          ctx.save();
+          ctx.beginPath(); ctx.rect(0, 0, W, PHOTO_H); ctx.clip();
+          ctx.drawImage(img, (W - sw) / 2, (PHOTO_H - sh) * 0.15, sw, sh);
+          ctx.restore();
+          // Fade into text area
+          const grad = ctx.createLinearGradient(0, PHOTO_H * 0.55, 0, PHOTO_H);
+          grad.addColorStop(0, 'rgba(10,10,10,0)');
+          grad.addColorStop(1, 'rgba(10,10,10,1)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, PHOTO_H);
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = post.photoDataUrl;
+      });
+    }
+
+    // Lime left accent bar
+    const TEXT_Y = post.photoDataUrl ? Math.round(H * 0.60) : 80;
+    ctx.fillStyle = LIME;
+    ctx.fillRect(0, TEXT_Y, 8, H - TEXT_Y);
+
+    // Body text
+    const PAD = 48, maxTW = W - PAD - 40;
+    const charCount = bodyText.length;
+    const fontSize  = charCount < 180 ? 36 : charCount < 320 ? 30 : 26;
+    const lineH     = fontSize * 1.5;
+    ctx.fillStyle = '#f0f0f0';
+    ctx.font      = `${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'left';
+
+    function wrap(txt, maxW) {
+      const words = txt.split(' '), lines = []; let cur = '';
+      for (const w of words) {
+        const test = cur ? cur + ' ' + w : w;
+        if (ctx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+        else cur = test;
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    }
+
+    const allLines = bodyText.split('\n').flatMap(p => wrap(p, maxTW));
+    const maxLines = Math.floor((H - TEXT_Y - 120) / lineH);
+    let textY = TEXT_Y + 48;
+    allLines.slice(0, maxLines).forEach(l => { ctx.fillText(l, PAD, textY); textY += lineH; });
+
+    // Hashtags in lime
+    if (hashText) {
+      ctx.fillStyle = LIME;
+      ctx.font      = 'bold 26px Arial, sans-serif';
+      wrap(hashText, maxTW).slice(0, 2).forEach((l, i) => {
+        ctx.fillText(l, PAD, H - 88 + i * 34);
+      });
+    }
+
+    // Watermark
+    ctx.fillStyle = 'rgba(127,212,26,0.4)';
+    ctx.font      = '20px Arial, sans-serif';
+    ctx.fillText('korndogrecords.com', PAD, H - 22);
+
+    // Download
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
     const a = document.createElement('a');
     a.href     = dataUrl;
     a.download = `korndog-post-${Date.now()}.jpg`;
@@ -880,13 +625,9 @@ async function postToMeta(post, idx, btn) {
     a.click();
     document.body.removeChild(a);
 
-    // Also copy the caption text to clipboard
     await copyPostSilent(post.text);
-
-    // Show instructions toast
     showToast('📥 Graphic saved! Caption copied — open Facebook & post as photo.');
 
-    // Remove from queue
     state.queue.splice(idx, 1);
     saveQueue();
     updateBadge();
@@ -899,18 +640,16 @@ async function postToMeta(post, idx, btn) {
   }
 }
 
-// Silent clipboard copy (no toast) — used alongside graphic download
+// Silent clipboard copy
 async function copyPostSilent(text) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try { await navigator.clipboard.writeText(text); return; } catch (e) {}
   }
-  // Fallback
   const ta = document.createElement('textarea');
   ta.value = text;
   ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0;';
   document.body.appendChild(ta);
-  ta.focus();
-  ta.select();
+  ta.focus(); ta.select();
   try { document.execCommand('copy'); } catch (e) {}
   document.body.removeChild(ta);
 }
@@ -1015,29 +754,20 @@ async function copyPost(text) {
     position:fixed;inset:0;background:rgba(0,0,0,0.85);
     z-index:9999;display:flex;align-items:flex-end;
   `;
-
   overlay.innerHTML = `
     <div style="
       width:100%;background:#1e1e1e;border-radius:20px 20px 0 0;
       padding:20px;max-height:70dvh;overflow-y:auto;
     ">
-      <div style="
-        width:40px;height:4px;background:#333;border-radius:2px;
-        margin:0 auto 16px;
-      "></div>
-      <div style="
-        font-family:'Bebas Neue',sans-serif;font-size:20px;
-        color:#7FD41A;letter-spacing:1px;margin-bottom:12px;
-      ">Select All & Copy</div>
+      <div style="width:40px;height:4px;background:#333;border-radius:2px;margin:0 auto 16px;"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#7FD41A;letter-spacing:1px;margin-bottom:12px;">Select All & Copy</div>
       <textarea id="copyFallbackTA" readonly style="
         width:100%;background:#141414;border:1.5px solid #7FD41A;
         border-radius:12px;padding:14px;color:#f0f0f0;
         font-family:'Barlow',sans-serif;font-size:14px;
         line-height:1.6;resize:none;min-height:160px;outline:none;
       ">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
-      <div style="font-size:12px;color:#888;margin:10px 0 16px;">
-        Tap the text above → Select All → Copy
-      </div>
+      <div style="font-size:12px;color:#888;margin:10px 0 16px;">Tap the text above → Select All → Copy</div>
       <button onclick="this.closest('div[style]').parentElement.remove()" style="
         width:100%;background:#7FD41A;color:#0a0a0a;border:none;
         border-radius:12px;padding:14px;font-family:'Bebas Neue',sans-serif;
@@ -1045,10 +775,8 @@ async function copyPost(text) {
       ">DONE</button>
     </div>
   `;
-
   document.body.appendChild(overlay);
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
-
   setTimeout(() => {
     const ta = document.getElementById('copyFallbackTA');
     if (ta) { ta.focus(); ta.select(); }
