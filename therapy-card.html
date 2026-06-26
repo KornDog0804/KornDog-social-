@@ -213,6 +213,33 @@
     display: block;
   }
 
+  /* ── Live Preview Banner ── */
+  #livePreviewBanner {
+    display: none;
+    width: 100%;
+    max-width: 480px;
+    background: rgba(127,212,26,0.12);
+    border: 1px solid var(--lime);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: var(--lime);
+    text-transform: uppercase;
+  }
+  #livePreviewBanner span {
+    color: #888;
+    font-weight: 400;
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0;
+    margin-top: 3px;
+    text-transform: none;
+  }
+
   /* ── Toast ── */
   #toast {
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
@@ -327,6 +354,11 @@
 </div>
 
 <!-- Canvas preview -->
+<div id="livePreviewBanner">
+  ⚡ LIVE AI PREVIEW MODE
+  <span>Session number will not lock until you tap Download Card.</span>
+</div>
+
 <div id="previewWrap">
   <canvas id="previewCanvas"></canvas>
 </div>
@@ -334,8 +366,11 @@
 <div id="toast"></div>
 
 <script>
-// ── Mock AI flag — set to false when ready for live testing ──
-const USE_MOCK_AI = true;
+// ── AI mode flags ────────────────────────────────────────────
+// Set USE_MOCK_AI = true for free UI testing (no API calls)
+// Set USE_MOCK_AI = false for live AI mode
+const USE_MOCK_AI = false;
+const LIVE_AI_PREVIEW_ONLY = true; // session only locks on Download
 
 // ── State ─────────────────────────────────────────────────────
 let photoBase64    = null;
@@ -444,6 +479,11 @@ async function generateCard() {
 
 If you cannot read the cover clearly, make your best educated guess from what is visible. Always return valid JSON.`;
 
+    console.log('LIVE AI CALL', {
+      imageMimeType: photoMimeType,
+      imageLength:   photoBase64 ? photoBase64.length : 0,
+    });
+
     let raw;
     if (USE_MOCK_AI) {
       // ── MOCK — zero API cost for UI testing ────────────────
@@ -470,13 +510,20 @@ If you cannot read the cover clearly, make your best educated guess from what is
         })
       });
       const data = await res.json();
+      console.log('AI RESPONSE', data);
       if (!res.ok) throw new Error(data?.error || `Function error (${res.status})`);
       raw = (data?.text || '').trim();
     }
 
     // Strip any markdown fences
     const clean = raw.replace(/```json|```/g, '').trim();
-    const card  = JSON.parse(clean);
+    let card;
+    try {
+      card = JSON.parse(clean);
+    } catch (parseErr) {
+      console.log('JSON PARSE FAIL — raw AI output:', raw);
+      throw new Error('AI returned invalid JSON. Check console for raw output.');
+    }
 
     // Fill fields
     document.getElementById('f_artist').value = card.artist     || '';
@@ -497,7 +544,7 @@ If you cannot read the cover clearly, make your best educated guess from what is
 
   } catch (err) {
     console.error(err);
-    setStatus('Something went wrong — try again.');
+    setStatus('❌ ' + (err.message || 'Unknown AI error'));
     btn.disabled = false;
   } finally {
     clearInterval(ticker);
@@ -523,6 +570,7 @@ function debounce(fn, ms) {
 async function regenCard() {
   document.getElementById('fieldsSection').classList.remove('visible');
   document.getElementById('previewWrap').classList.remove('visible');
+  document.getElementById('livePreviewBanner').style.display = 'none';
   document.getElementById('photoDrop').style.display = 'block';
   document.getElementById('photoThumb').style.display = 'none';
   document.getElementById('generateBtn').disabled = true;
@@ -615,8 +663,8 @@ async function renderCard() {
   }
 
   const [logoImg, kittyImg, photoImg] = await Promise.all([
-    loadImg('https://korndogrecords.com/images/Screenshot_20250831-144625.png'),
-    loadImg('https://korndogrecords.com/images/3817.png'),
+    loadImg('/images/Screenshot_20250831-144625.png'),
+    loadImg('/images/3817.png'),
     photoDataUrl ? new Promise(resolve => {
       const img = new Image();
       img.onload = () => resolve(img);
@@ -730,26 +778,20 @@ async function renderCard() {
     const pX = IX + CARD_PAD, pY = PHOTO_Y + CARD_PAD;
     const pW = IW - CARD_PAD*2, pH = PHOTO_H - CARD_PAD*2;
 
-    // Contain: show full album cover, no cropping
-    const scale = Math.min(pW / photoImg.width, pH / photoImg.height);
+    // KornDog Crop Mode™ — cover fill with top bias
+    // Shows top of cover (where artist/title usually lives) rather than center
+    const COVER_TOP_BIAS = 0.15;
+    const scale = Math.max(pW / photoImg.width, pH / photoImg.height);
     const sw    = photoImg.width  * scale;
     const sh    = photoImg.height * scale;
     const sx    = pX + (pW - sw) / 2;
-    const sy    = pY + (pH - sh) / 2;
+    const sy    = pY + (pH - sh) * COVER_TOP_BIAS;
 
-    // Clip to photo zone, dark fill for any letterbox areas, then draw image
     ctx.save();
     roundRect(pX, pY, pW, pH, 6);
     ctx.clip();
-    ctx.fillStyle = '#0a0a0a';
-    ctx.fillRect(pX, pY, pW, pH);
     ctx.drawImage(photoImg, sx, sy, sw, sh);
     ctx.restore();
-
-    // Subtle border around just the album art
-    ctx.strokeStyle = '#333333';
-    ctx.lineWidth   = 2;
-    ctx.strokeRect(sx - 1, sy - 1, sw + 2, sh + 2);
   } else {
     ctx.fillStyle = '#1a1a1a';
     roundRect(IX+CARD_PAD, PHOTO_Y+CARD_PAD, IW-CARD_PAD*2, PHOTO_H-CARD_PAD*2, 6);
@@ -912,6 +954,10 @@ async function renderCard() {
   ctx.font      = 'bold 14px Arial, sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText('★ korndogrecords.com ★', IX + IW - 16, FOOT_Y + FOOT_H/2 + 6);
+
+  // Live preview banner
+  const bannerEl = document.getElementById('livePreviewBanner');
+  if (bannerEl) bannerEl.style.display = 'block';
 
   document.getElementById('previewWrap').classList.add('visible');
 }
